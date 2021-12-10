@@ -1,3 +1,7 @@
+import cv2
+import numpy as np
+import os
+
 #Constantes opciones del menu principal 
 CANTIDAD_OPCIONES_MENU:int = 8
 OPCION_MENU_ABM_PEDIDOS:int = 1
@@ -8,9 +12,6 @@ OPCION_VALORIZAR_PEDIDOS_ROSARIO:int = 5
 OPCION_ARTICULO_MAS_PEDIDO:int = 6
 OPCION_INCIALIZAR_CINTA_TRANSPORTADORA:int = 7
 
-import cv2
-import numpy as np
-import os
 
 
 def load_yolo():
