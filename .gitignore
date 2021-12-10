@@ -3,3 +3,4 @@
 know_HSV.py
 yolov3.cfg
 yolov3.weights
+coco.names
