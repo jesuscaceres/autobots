@@ -199,8 +199,6 @@ def menu() -> int:
     
     return int(opcion_user)
 
-def funcion_opcion_1():
-    pass 
 
 def funcion_opcion_2():
     pass 
