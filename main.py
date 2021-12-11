@@ -22,15 +22,18 @@ PESO_BOTELLA = 450
 PESO_VASO = 350
 
 
-def load_yolo():
-	net = cv2.dnn.readNet("yolov3.weights", "yolov3.cfg")
-	classes = []
-	with open("coco.names", "r") as f:
-		classes = [line.strip() for line in f.readlines()] 
-	
-	output_layers = [layer_name for layer_name in net.getUnconnectedOutLayersNames()]
-	colors = np.random.uniform(0, 255, size=(len(classes), 3))
-	return net, classes, colors, output_layers
+def cargar_yolo() -> None:
+    """
+    Carga los archivos de YOLO
+    """
+    net = cv2.dnn.readNet("yolov3.weights", "yolov3.cfg")
+    clases = []
+    with open("coco.names", "r") as f:
+        clases = [line.strip() for line in f.readlines()] 
+
+    output_layers = [layer_name for layer_name in net.getUnconnectedOutLayersNames()]
+    colores = np.random.uniform(0, 255, size=(len(clases), 3))
+    return net, clases, colores, output_layers
 
 
 def leer_imagen(dir_imagen:str) -> str:
@@ -57,102 +60,140 @@ def detectar_objetos(img, net, outputLayers:list):
 	return blob, outputs
 
 
-def get_box_dimensions(outputs, height, width):
-	boxes = []
-	confs = []
-	class_ids = []
-	for output in outputs:
-		for detect in output:
-			scores = detect[5:]
-			class_id = np.argmax(scores)
-			conf = scores[class_id]
-			if conf > 0.3:
-				center_x = int(detect[0] * width)
-				center_y = int(detect[1] * height)
-				w = int(detect[2] * width)
-				h = int(detect[3] * height)
-				x = int(center_x - w/2)
-				y = int(center_y - h / 2)
-				boxes.append([x, y, w, h])
-				confs.append(float(conf))
-				class_ids.append(class_id)
-	return boxes, confs, class_ids
+def obtener_dimension_box(outputs, altura, ancho) -> list:
+    """ 
+    Parametros
+    ----------
+    Recibe como parámetro el output del obeto detectado, su altura y ancho
 
-def get_color(path):
-	img = cv2.imread(path)
-	color:str = ""
-	b = img[:, :, :1]
-	g = img[:, :, 1:2]
-	r = img[:, :, 2:]
+    Retorno
+    -------
+        Retorna las medidas y la posicion de donde se ubica el cuadro y el texto en la imagen  
+    """
+    boxes = []
+    confs = []
+    class_ids = []
+    for output in outputs:
+        for detect in output:
+            scores = detect[5:]
+            class_id = np.argmax(scores)
+            conf = scores[class_id]
+            if conf > 0.3:
+                centro_x = int(detect[0] * ancho)
+                centro_y = int(detect[1] * altura)
+                w = int(detect[2] * ancho)
+                h = int(detect[3] * altura)
+                x = int(centro_x - w/2)
+                y = int(centro_y - h / 2)
+                boxes.append([x, y, w, h])
+                confs.append(float(conf))
+                class_ids.append(class_id)
+    return boxes, confs, class_ids
 
-	# computing the mean
-	b_mean = int(np.mean(b))
-	g_mean = int(np.mean(g))
-	r_mean = int(np.mean(r))
-	print(b_mean)
-	print(g_mean)
-	print(r_mean)
+def obtener_color(path) -> str:
+    """ 
+    Obtiene el color de la imagen
 
-	# displaying the most prominent color
-	if (b_mean > g_mean and b_mean > r_mean):
-		color = "Blue"
-	elif (g_mean > r_mean and g_mean > b_mean):
-		color = "Green"
-	elif (r_mean > b_mean and r_mean > g_mean):
-		color = "Red"
-	elif (g_mean == r_mean and (b_mean != r_mean or b_mean != g_mean)):
-		color = "Yellow"
-	elif (r_mean == b_mean and r_mean == g_mean):
-		color = "Black"
-	
-	return color
+    Parametros
+    ----------
+    Recibe como parámetro la dirección en donde está ubicada la imagen
 
-def count (label, copa, bottle, colores):
-	if label == "cup":
-		if len(copa) == 1:
-			copa.append(1)
-			if colores not in copa[0]:
-				copa[0][colores] = 1
-		else:
-			copa[1] = copa[1] + 1
-			if colores not in copa[0]:
-				copa[0][colores] = 1
-			else: copa[0][colores] += 1
-	elif label == "bottle":
-		if len(bottle) == 1:
-			bottle.append(1)
-			if colores not in bottle[0]:
-				bottle[0][colores] = 1
-		else:
-			bottle[1] = bottle[1] + 1
-			if colores not in bottle[0]:
-				bottle[0][colores] = 1
-			else: 
-				bottle[0][colores] += 1
-	else:
-		print("PROCESO DETENIDO, se reanuda en 1 minuto")
+    Retorno
+    -------
+        str 
+            Retorna el color 
+    """
+    img = cv2.imread(path)
+    color:str = ""
+    b = img[:, :, :1]
+    g = img[:, :, 1:2]
+    r = img[:, :, 2:]
 
-def draw_labels(path, boxes, confs, colors, class_ids, classes, img, copa, bottle):
-	indexes = cv2.dnn.NMSBoxes(boxes, confs, 0.5, 0.4)
-	font = cv2.FONT_HERSHEY_PLAIN
-	colores = get_color(path)
-	for i in range(len(boxes)):
-		if i in indexes:
-			x, y, w, h = boxes[i]
-			label = str(classes[class_ids[i]])
-			color = colors[i]
-			cv2.rectangle(img, (x,y), (x+w, y+h), color, 2)
-			cv2.putText(img, label, (x, y + 20), font, 1, color, 1)
-			print(label + "  " + colores)
-			count(label, copa, bottle, colores)
+    # computing the mean
+    b_mean = int(np.mean(b))
+    g_mean = int(np.mean(g))
+    r_mean = int(np.mean(r))
+    # print(b_mean)
+    # print(g_mean)
+    # print(r_mean)
+
+    # displaying the most prominent color
+    if (b_mean > g_mean and b_mean > r_mean):
+        color = "Blue"
+    elif (g_mean > r_mean and g_mean > b_mean):
+        color = "Green"
+    elif (r_mean > b_mean and r_mean > g_mean):
+        color = "Red"
+    elif (g_mean == r_mean and (b_mean != r_mean or b_mean != g_mean)):
+        color = "Yellow"
+    elif (r_mean == b_mean and r_mean == g_mean):
+        color = "Black"
+
+    return color
+
+def contador_producto_color (etiqueta_nombre:str, copa:list, botella:list, colores:str) -> None:
+    """ 
+    Imprime en pantalla si el proceso se detiene por algún producto distinto a los del catálogo.
+
+    Parametros
+    ----------
+    Recibe como parámetro el nombre del objeto detectado, la lista de la copa y botella en donde se lleva el registro
+        de la cantidad de cada uno y el color.
+    """
+    if etiqueta_nombre == "cup":
+        if len(copa) == 1:
+            copa.append(1)
+            if colores not in copa[0]:
+                copa[0][colores] = 1
+        else:
+            copa[1] = copa[1] + 1
+            if colores not in copa[0]:
+                copa[0][colores] = 1
+            else: copa[0][colores] += 1
+    elif etiqueta_nombre == "bottle":
+        if len(botella) == 1:
+            botella.append(1)
+            if colores not in botella[0]:
+                botella[0][colores] = 1
+        else:
+            botella[1] = botella[1] + 1
+            if colores not in botella[0]:
+                botella[0][colores] = 1
+            else: 
+                botella[0][colores] += 1
+    else:
+        print("PROCESO DETENIDO, se reanuda en 1 minuto")
+
+def dibujar_cuadro_nombre(path, boxes, confs, colors, class_ids, classes, img, copa, botella) -> None:
+    """ 
+    Dibuja en mi imagen el cuadrado con el nombre del objeto que se detecta. Esta función es utilizada si se quiere imprimir 
+        la imagen.
+
+    Parametros
+    ----------
+    Recibe como parámetro toda la información necesario previamente calculada.
+ 
+    """
+    indexes = cv2.dnn.NMSBoxes(boxes, confs, 0.5, 0.4)
+    font = cv2.FONT_HERSHEY_PLAIN
+    colores = obtener_color(path)
+    for i in range(len(boxes)):
+        if i in indexes:
+            x, y, w, h = boxes[i]
+            label = str(classes[class_ids[i]])
+            color = colors[i]
+            cv2.rectangle(img, (x,y), (x+w, y+h), color, 2)
+            cv2.putText(img, label, (x, y + 20), font, 1, color, 1)
+            print(label + "  " + colores)
+            contador_producto_color(label, copa, botella, colores)
 			
 
-def detectar_imagen(dir_imagen, copa, bottle): 
-	model, classes, colors, output_layers = load_yolo()
-	image, height, width, channels = leer_imagen(dir_imagen)
-	blob, outputs = detectar_objetos(image, model, output_layers)
-	boxes, confs, class_ids = get_box_dimensions(outputs, height, width)
-	draw_labels(dir_imagen, boxes, confs, colors, class_ids, classes, image, copa, bottle)
+def detectar_imagen(dir_imagen, copa:list, botella:list) -> None: 
+	modelo, clases, colores, output_layers = cargar_yolo()
+	image, altura, ancho, channels = leer_imagen(dir_imagen)
+	blob, outputs = detectar_objetos(image, modelo, output_layers)
+	boxes, confs, class_ids = obtener_dimension_box(outputs, altura, ancho)
+	dibujar_cuadro_nombre(dir_imagen, boxes, confs, colores, class_ids, clases, image, copa, botella)
 	cv2.waitKey(0)
 
 
@@ -224,18 +265,21 @@ def funcion_opcion_5():
 def funcion_opcion_6():
     pass 
 
-def lector_imagenes():
-    bottle = [{}]
-    copa = [{}]
+def lector_imagenes() -> None:
+    """ 
+    Función que ejecuta el resto de funciones para poder determinar el producto y color de la carpeta de lotes.
+    """
+    botella:list = [{}]
+    copa:list = [{}]
     input_imagen_path = os.getcwd() + "/Lote0001"
     nombre_archivos = os.listdir(input_imagen_path)
 
     for archivo in nombre_archivos:
         imagen_path = input_imagen_path + "/" + archivo
-        detectar_imagen(imagen_path, copa, bottle)
+        detectar_imagen(imagen_path, copa, botella)
 
     print(copa)
-    print(bottle)
+    print(botella)
     cv2.destroyAllWindows()
 
 
@@ -286,7 +330,7 @@ def cargar_pedidos() -> dict:
     return pedidos_archivo
 
 
-def leer_opcion(opciones: list[str]) -> str:
+def leer_opcion(opciones: list) -> str:
     """Muestra las posibles opciones y lee la opción ingresada por el usuario.
 
     Args:
@@ -343,7 +387,7 @@ def obtener_valor_en_rango(campo: str, inicio: int, fin: int) -> float:
     return valor
 
 
-def obtener_opciones_validas(lista: list[str]) -> list[str]:
+def obtener_opciones_validas(lista: list) -> list:
     """Devuelve la lista de posibles opciones validas
 
     Args:
