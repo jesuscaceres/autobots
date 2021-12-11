@@ -33,15 +33,24 @@ def load_yolo():
 	return net, classes, colors, output_layers
 
 
-def load_image(img_path):
-	# image loading
-	img = cv2.imread(img_path)
+def leer_imagen(dir_imagen:str) -> str:
+	""" 
+    Parametros
+    ----------
+    Recibe como parámetro la dirección en donde está ubicada la imagen en nuestra PC
+
+    Retorno
+    -------
+        float 
+            Retorna la imagen, su altura, ancho y canal    
+    """
+	img = cv2.imread(dir_imagen)
 	img = cv2.resize(img, None, fx=0.4, fy=0.4)
-	height, width, channels = img.shape
-	return img, height, width, channels
+	altura, ancho, canal = img.shape
+	return img, altura, ancho, canal
 
 
-def detect_objects(img, net, outputLayers):			
+def detectar_objetos(img, net, outputLayers:list):			
 	blob = cv2.dnn.blobFromImage(img, scalefactor=0.00392, size=(320, 320), mean=(0, 0, 0), swapRB=True, crop=False)
 	net.setInput(blob)
 	outputs = net.forward(outputLayers)
@@ -98,17 +107,17 @@ def get_color(path):
 	
 	return color
 
-def count (label, cup, bottle, colores):
+def count (label, copa, bottle, colores):
 	if label == "cup":
-		if len(cup) == 1:
-			cup.append(1)
-			if colores not in cup[0]:
-				cup[0][colores] = 1
+		if len(copa) == 1:
+			copa.append(1)
+			if colores not in copa[0]:
+				copa[0][colores] = 1
 		else:
-			cup[1] = cup[1] + 1
-			if colores not in cup[0]:
-				cup[0][colores] = 1
-			else: cup[0][colores] += 1
+			copa[1] = copa[1] + 1
+			if colores not in copa[0]:
+				copa[0][colores] = 1
+			else: copa[0][colores] += 1
 	elif label == "bottle":
 		if len(bottle) == 1:
 			bottle.append(1)
@@ -123,7 +132,7 @@ def count (label, cup, bottle, colores):
 	else:
 		print("PROCESO DETENIDO, se reanuda en 1 minuto")
 
-def draw_labels(path, boxes, confs, colors, class_ids, classes, img, cup, bottle):
+def draw_labels(path, boxes, confs, colors, class_ids, classes, img, copa, bottle):
 	indexes = cv2.dnn.NMSBoxes(boxes, confs, 0.5, 0.4)
 	font = cv2.FONT_HERSHEY_PLAIN
 	colores = get_color(path)
@@ -135,15 +144,15 @@ def draw_labels(path, boxes, confs, colors, class_ids, classes, img, cup, bottle
 			cv2.rectangle(img, (x,y), (x+w, y+h), color, 2)
 			cv2.putText(img, label, (x, y + 20), font, 1, color, 1)
 			print(label + "  " + colores)
-			count(label, cup, bottle, colores)
+			count(label, copa, bottle, colores)
 			
 
-def image_detect(img_path, cup, bottle): 
+def detectar_imagen(dir_imagen, copa, bottle): 
 	model, classes, colors, output_layers = load_yolo()
-	image, height, width, channels = load_image(img_path)
-	blob, outputs = detect_objects(image, model, output_layers)
+	image, height, width, channels = leer_imagen(dir_imagen)
+	blob, outputs = detectar_objetos(image, model, output_layers)
 	boxes, confs, class_ids = get_box_dimensions(outputs, height, width)
-	draw_labels(img_path, boxes, confs, colors, class_ids, classes, image, cup, bottle)
+	draw_labels(dir_imagen, boxes, confs, colors, class_ids, classes, image, copa, bottle)
 	cv2.waitKey(0)
 
 
@@ -217,18 +226,15 @@ def funcion_opcion_6():
 
 def lector_imagenes():
     bottle = [{}]
-    cup = [{}]
-    # image_path = os.getcwd() + "/Lote0001/75.jpg"
-    # image_detect(image_path, cup, bottle)
-
+    copa = [{}]
     input_imagen_path = os.getcwd() + "/Lote0001"
     nombre_archivos = os.listdir(input_imagen_path)
 
     for archivo in nombre_archivos:
         imagen_path = input_imagen_path + "/" + archivo
-        image_detect(imagen_path, cup, bottle)
+        detectar_imagen(imagen_path, copa, bottle)
 
-    print(cup)
+    print(copa)
     print(bottle)
     cv2.destroyAllWindows()
 
