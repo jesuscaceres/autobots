@@ -210,6 +210,49 @@ def menu() -> int:
     
     return int(opcion_user)
 
+def obtener_zonas_geograficas(_pedidos:dict) -> dict:
+    #Obtiene el listado de zonas con sus respectivas ciudades clasificadas segun latitud
+    """
+        ZONAS GEOGRAFICAS 
+        Zona Norte: Todas las ciudades cuya latitud sea menor a 35°
+        Zona centro: Todas las ciudades entre la latitud 35 y 40 grados
+        Zona Sur: Todas las ciudades cuya latitud sea mayor a 40 grados.
+        CABA: Todos los pedidos que sean de CABA.
+    """ 
+    geolocalizador = Nominatim(user_agent="autobots") 
+    ciudades:dict = {}
+
+    zonas_geograficas:dict = {
+        "CABA":{},
+        "NORTE":{},
+        "SUR":{},
+        "CENTRO":{}
+    }  
+
+    for nro_pedido, datos_pedido in _pedidos.items():
+            pedido_ciudad:str = datos_pedido.get("ciudad", "CABA") 
+
+            if (pedido_ciudad not in ciudades.keys()):
+                #Solo proceso la ciudad si no la tengo agregada 
+                pedido_provincia:str = datos_pedido.get("provincia", "Buenos Aires")
+                geo_ubicacion:str = geolocalizador.geocode(f"{pedido_ciudad}, {pedido_provincia}, {PAIS}") 
+                ubicacion_ciudad:tuple = (float(geo_ubicacion.latitude), float(geo_ubicacion.longitude))
+                ciudades[pedido_ciudad] = ubicacion_ciudad
+                zona:str = "" 
+
+                if (pedido_ciudad == "CABA"):
+                    zona = "CABA"
+                elif (abs(ubicacion_ciudad[0]) < LATIUD_35_GRADOS):
+                    zona = "NORTE"
+                elif (abs(ubicacion_ciudad[0]) < LATIUD_40_GRADOS): 
+                   zona = "CENTRO"
+                else: 
+                    zona = "SUR"
+
+                zonas_geograficas[zona][pedido_ciudad] = ubicacion_ciudad
+
+    return zonas_geograficas
+
 def  obtener_recorrido_por_zona(_pedidos:dict) -> None:
     #Imprime el recorrido optimo según la zona específicada por el usuario 
     """
