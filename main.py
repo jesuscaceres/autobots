@@ -8,21 +8,21 @@ from geopy.geocoders import Nominatim
 from geopy import distance
 
 #Constantes opciones del menu principal 
-CANTIDAD_OPCIONES_MENU:int = 8
-OPCION_MENU_ABM_PEDIDOS:int = 1
-OPCION_MENU_RECORRIDO_POR_ZONA:int = 2
-OPCION_MENU_PROCESAR_PEDIDOS_TRANSPORTE:int = 3
-OPCION_LISTAR_PEDIDOS_PROCESADOS:int = 4
-OPCION_VALORIZAR_PEDIDOS_ROSARIO:int = 5
-OPCION_ARTICULO_MAS_PEDIDO:int = 6
-OPCION_INCIALIZAR_CINTA_TRANSPORTADORA:int = 7
+CANTIDAD_OPCIONES_MENU: int = 8
+OPCION_MENU_ABM_PEDIDOS: int = 1
+OPCION_MENU_RECORRIDO_POR_ZONA: int = 2
+OPCION_MENU_PROCESAR_PEDIDOS_TRANSPORTE: int = 3
+OPCION_LISTAR_PEDIDOS_PROCESADOS: int = 4
+OPCION_VALORIZAR_PEDIDOS_ROSARIO: int = 5
+OPCION_ARTICULO_MAS_PEDIDO: int = 6
+OPCION_INCIALIZAR_CINTA_TRANSPORTADORA: int = 7
 
 #Constantes geolocalizacion
-LATIUD_35_GRADOS:float = 35
-LATIUD_40_GRADOS:float = 40
-PROVINCIA_PUNTO_PARTIDA:str = "Buenos Aires"
-CIUDAD_PUNTO_PARTIDA:str = "CABA"
-PAIS:str = "Argentina"
+LATITUD_35_GRADOS: float = 35
+LATITUD_40_GRADOS: float = 40
+PROVINCIA_PUNTO_PARTIDA: str = "Buenos Aires"
+CIUDAD_PUNTO_PARTIDA: str = "CABA"
+PAIS: str = "Argentina"
 
 # Precio en dólares
 PRECIO_BOTELLA = 15
@@ -242,9 +242,9 @@ def obtener_zonas_geograficas(_pedidos:dict) -> dict:
 
                 if (pedido_ciudad == "CABA"):
                     zona = "CABA"
-                elif (abs(ubicacion_ciudad[0]) < LATIUD_35_GRADOS):
+                elif (abs(ubicacion_ciudad[0]) < LATITUD_35_GRADOS):
                     zona = "NORTE"
-                elif (abs(ubicacion_ciudad[0]) < LATIUD_40_GRADOS): 
+                elif (abs(ubicacion_ciudad[0]) < LATITUD_40_GRADOS): 
                    zona = "CENTRO"
                 else: 
                     zona = "SUR"
