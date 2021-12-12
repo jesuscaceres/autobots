@@ -16,15 +16,24 @@ OPCION_LISTAR_PEDIDOS_PROCESADOS: int = 4
 OPCION_VALORIZAR_PEDIDOS_ROSARIO: int = 5
 OPCION_ARTICULO_MAS_PEDIDO: int = 6
 OPCION_INCIALIZAR_CINTA_TRANSPORTADORA: int = 7
+
 # Constantes geolocalizacion
 LATITUD_35_GRADOS: float = 35
 LATITUD_40_GRADOS: float = 40
 PROVINCIA_PUNTO_PARTIDA: str = "Buenos Aires"
 CIUDAD_PUNTO_PARTIDA: str = "CABA"
 PAIS: str = "Argentina"
+
+#Constantes Zonas Geograficas (Claves)
+ZONA_CABA: str = "CABA"
+ZONA_CENTRO: str = "CENTRO"
+ZONA_SUR: str = "SUR"
+ZONA_NORTE: str = "NORTE"
+
 # Precio en dólares
 PRECIO_BOTELLA: float = 15
 PRECIO_VASO: float = 8
+
 # Peso en kilogramos
 PESO_BOTELLA: float = 0.450
 PESO_VASO: float = 0.350
@@ -210,14 +219,15 @@ def imprimir_opciones_logistik() -> None:
         Imprime las posibles opciones de menu por pantalla para que el
         usuario sepa que puede hacer con el programa principal
     """
-    print("(1) - Alta, Baja o Modificación de Pedidos")
-    print("(2) - Determinar recorrido por zona geografica")
-    print("(3) - Procesar pedidos optimizando carga de transporte")
-    print("(4) - Listar pedidos procesados")
-    print("(5) - Valorizar pedidos de la ciudad de 'Rosario'")
-    print("(6) - Artículo más pedido")
-    print("(7) - Inicializar cinta transportadora")
-    print("(8) - SALIR ")
+    print('')
+    print("\t(1) - Alta, Baja o Modificación de Pedidos")
+    print("\t(2) - Determinar recorrido por zona geografica")
+    print("\t(3) - Procesar pedidos optimizando carga de transporte")
+    print("\t(4) - Listar pedidos procesados")
+    print("\t(5) - Valorizar pedidos de la ciudad de 'Rosario'")
+    print("\t(6) - Artículo más pedido")
+    print("\t(7) - Inicializar cinta transportadora")
+    print("\t(8) - Salir ")
 
 
 def opcion_valida(opcion: str, cantidad_opciones: int) -> bool:
@@ -249,65 +259,92 @@ def menu() -> int:
         por el usuario corresponda con alguna de las posibles opciones
     """
     print("")
-    print("Bienvenido Logistik, por favor escoge una opción: ")
+    print("\tBienvenido Logistik, por favor escoge una opción: ")
     imprimir_opciones_logistik()
-    opcion_user: str = input("")
+    opcion_user: str = input('\n\t\tIngrese su opción: ')
 
     while not opcion_valida(opcion_user, CANTIDAD_OPCIONES_MENU):
-        print("Por favor ingrese una opción válida: ")
+        print("\n\tPor favor ingrese una opción válida: ")
         imprimir_opciones_logistik()
-        opcion_user = input("")
+        opcion_user = input('\n\t\tIngrese su opción: ')
 
     return int(opcion_user)
 
-
-def obtener_zonas_geograficas(_pedidos: dict) -> dict:
-    # Obtiene el listado de zonas con sus respectivas ciudades clasificadas segun latitud
-    """
-        ZONAS GEOGRAFICAS
+def obtener_zonas_geograficas(_pedidos:dict) -> dict:
+    """ 
+    Obtiene el listado de zonas geográficas de Argentina 
+    agrupadas con las ciudades que están actualmente en pedidos 
+    clasificadas segun latitud, de acuerdo a lo siguiente: 
+        
         Zona Norte: Todas las ciudades cuya latitud sea menor a 35°
-        Zona centro: Todas las ciudades entre la latitud 35 y 40 grados
-        Zona Sur: Todas las ciudades cuya latitud sea mayor a 40 grados.
+        Zona centro: Todas las ciudades entre la latitud 35° y 40°
+        Zona Sur: Todas las ciudades cuya latitud sea mayor a 40°.
         CABA: Todos los pedidos que sean de CABA.
-    """
-    geolocalizador = Nominatim(user_agent="autobots")
-    ciudades: dict = {}
 
+    Parametros
+    ----------
+    _pedidos: dict 
+        La estructura que almacena todos los pedidos y la información 
+        de cada uno 
+
+    Retorno
+    -------
+    zonas_geograficas: dict 
+        El diccionario que contiene como clave:zona y valor otro diccionario 
+        que contiene como clave: Ciudad y Valor: Coordenadas (el punto geografico)
+        de la ciudad, obtenido haciendo uso de la librería Geopy. 
+
+    """
+    geolocalizador = Nominatim(user_agent="autobots") 
+    ciudades: dict = {}
     zonas_geograficas: dict = {
-        "CABA": {},
-        "NORTE": {},
-        "SUR": {},
-        "CENTRO": {}
-    }
+        ZONA_CABA:{},
+        ZONA_NORTE:{},
+        ZONA_SUR:{},
+        ZONA_CENTRO:{}
+    }  
 
     for nro_pedido, datos_pedido in _pedidos.items():
         pedido_ciudad: str = datos_pedido.get("ciudad", "CABA")
 
         if (pedido_ciudad not in ciudades.keys()):
-            # Solo proceso la ciudad si no la tengo agregada
+            #Solo proceso ciudades que no he procesado
             pedido_provincia: str = datos_pedido.get("provincia", "Buenos Aires")
-            geo_ubicacion: str = geolocalizador.geocode(f"{pedido_ciudad}, {pedido_provincia}, {PAIS}")
+            geo_ubicacion: str = geolocalizador.geocode(f"{pedido_ciudad}, {pedido_provincia}, {PAIS}") 
             ubicacion_ciudad: tuple = (float(geo_ubicacion.latitude), float(geo_ubicacion.longitude))
             ciudades[pedido_ciudad] = ubicacion_ciudad
-            zona: str = ""
+            zona: str = ZONA_CABA 
 
-            if (pedido_ciudad == "CABA"):
-                zona = "CABA"
-            elif (abs(ubicacion_ciudad[0]) < LATITUD_35_GRADOS):
-                zona = "NORTE"
-            elif (abs(ubicacion_ciudad[0]) < LATITUD_40_GRADOS):
-                zona = "CENTRO"
-            else:
-                zona = "SUR"
+        if (pedido_ciudad == ZONA_CABA):
+            zona =  zona
+        elif (abs(ubicacion_ciudad[0]) < LATITUD_35_GRADOS):
+            zona = ZONA_NORTE
+        elif (abs(ubicacion_ciudad[0]) < LATITUD_40_GRADOS):
+            zona = ZONA_CENTRO
+        else:
+            zona = ZONA_SUR
 
-            zonas_geograficas[zona][pedido_ciudad] = ubicacion_ciudad
+        zonas_geograficas[zona][pedido_ciudad] = ubicacion_ciudad
 
     return zonas_geograficas
 
-
 def obtener_punto_partida() -> tuple:
-    # Retorna las coordenadas del punto de partida del recorrido
-    # (en nuestro caso el punto de partida siempre va a ser CABA, Buenos Aires)
+    """ 
+    Obtiene las coordenadas para el punto de partida.
+    En este caso, el punto de partida desde donde se van 
+    a enviar los pedidos, siempre se va a considerar como CABA, Buenos Aires. 
+
+    Parametros
+    ----------
+    None 
+
+    Retorno
+    -------
+    punto_partida: tuple 
+        Las coordenadas que definen al punto de partida
+        (Latitud, Longitud) obtenidas con la librería geopy
+
+    """
     geolocalizador = Nominatim(user_agent="autobots")
     geo_ubicacion_punto_partida: str = geolocalizador.geocode(
         f"{CIUDAD_PUNTO_PARTIDA}, {PROVINCIA_PUNTO_PARTIDA}, {PAIS}")
@@ -315,11 +352,30 @@ def obtener_punto_partida() -> tuple:
 
     return punto_partida
 
-
 def calcular_recorrido_por_zona(zonas_geograficas: dict, zona: str, punto_partida: tuple) -> list:
-    # Calcula el recorrido optimo desde el punto de partida para una zona pasada por parametro
-    # Entrada (diccionario con las zonas y las ciudades de los pedidos actuales, el string de la zona a
-    # ordenar y la tupla con las coordenadas del punto de partida)
+    """ 
+    Calcula el recorrido óptimo de ciudades a 
+    recorrer por zona geográfica considerando al punto de partida 
+
+    Parametros
+    ----------
+    zonas_geograficas: dict 
+        La estructura que contiene cada zona geográfica con la información
+        de sus ciudaes (y las coordenadas de la misma) de acuerdo a las ciudades
+        que hayan entre los pedidos actuales. 
+    zona: str 
+        Es la zona a la cuál queremos determinar el recorrido óptimo. 
+        La zona representa una clave dentro del diccionario de zonas_geograficas
+    punto_partida: tuple 
+        Representa la tupla con las coordenadas del punto de partida 
+
+    Retorno
+    -------
+        recorrido: list
+        La lista de ciudades ordenadas de acuerdo al recorrido óptimo de la zona
+        indicada. 
+    """
+
     ciudades: dict = zonas_geograficas.get(zona, {})
     tamaño_recorrido: int = len(ciudades)
     punto_comparacion: tuple = punto_partida
@@ -334,45 +390,49 @@ def calcular_recorrido_por_zona(zonas_geograficas: dict, zona: str, punto_partid
     return recorrido
 
 
-def imprimir_opciones_zonas() -> None:
+def imprimir_opciones_zonas_geograficas() -> None:
     """
         Imprime las opciones para las zonas geograficas
     """
-    print("Escoge una zona geográfica para determinar el recorrido óptimo a realizar: ")
-    print("(1) - CABA")
-    print("(2) - ZONA NORTE ")
-    print("(3) - ZONA CENTRO ")
-    print("(4) - ZONA SUR ")
+    print("")
+    print("\tEscoge una zona geográfica para determinar el recorrido óptimo a realizar: ")
+    print("\t(1) - CABA")
+    print("\t(2) - ZONA NORTE ")
+    print("\t(3) - ZONA CENTRO ")
+    print("\t(4) - ZONA SUR ")
 
 
-def determinar_recorrido_por_zona(_pedidos: dict) -> None:
-    # Imprime el recorrido optimo según la zona específicada por el usuario
+def recorrido_por_zona(_pedidos: dict) -> None:
+    """ 
+    Imprime por consola el recorrido óptimo de ciudades según 
+    una zona geografica (solicitada previamente al usuario). 
+
+    Parametros
+    ----------
+    _pedidos: dict
+        La estructura que almacena todos los pedidos y la información 
+        de cada uno
+    
+    Retorno
+    -------
+        None: Imprime directamente el recorrido por pantalla
     """
-        ZONAS GEOGRAFICAS
-        Zona Norte: Todas las ciudades cuya latitud sea menor a 35°
-        Zona centro: Todas las ciudades entre la latitud 35 y 40 grados
-        Zona Sur: Todas las ciudades cuya latitud sea mayor a 40 grados.
-        CABA: Todos los pedidos que sean de CABA.
-    """
+
     # Solo imprime por pantalla el recorrido optimo para la zona ingresada por el usuario
-    listado_zonas: list[str] = ["CABA", "NORTE", "CENTRO", "SUR"]
-    imprimir_opciones_zonas()
-    opcion_user: str = input("")
+    listado_zonas: list[str] = [ZONA_CABA, ZONA_NORTE, ZONA_CENTRO, ZONA_SUR]
+    imprimir_opciones_zonas_geograficas()
+    opcion_user: str = input('\n\t\tIngrese su opción: ')
 
     while not opcion_valida(opcion_user, len(listado_zonas)):
-        print("Por favor ingrese una opción válida: ")
-        imprimir_opciones_zonas()
-        opcion_user = input("")
+        print("\n\tPor favor ingrese una opción válida: ")
+        imprimir_opciones_zonas_geograficas()
+        opcion_user = input('\n\t\tIngrese su opción: ')
 
-    print("Calculando recorrido")
+    print("\n\tCalculando recorrido")
     zonas_geograficas: dict = obtener_zonas_geograficas(_pedidos)
-    print("El recorrido más óptimo para la zona ingresada es: ")
-    punto_partida: tuple = obtener_punto_partida()
-    recorrido: list = calcular_recorrido_por_zona(zonas_geograficas, listado_zonas[int(opcion_user) - 1], punto_partida)
-
-    for ciudad in recorrido:
-        print(ciudad)
-
+    print("\n\tEl recorrido más óptimo para la zona ingresada es: ", end = '')
+    recorrido: list = calcular_recorrido_por_zona(zonas_geograficas, listado_zonas[int(opcion_user) - 1], obtener_punto_partida())
+    print(", ".join(ciudad for ciudad in recorrido))
 
 def funcion_opcion_3():
     pass
@@ -965,7 +1025,7 @@ def main():
             pedidos_abm(pedidos)
 
         elif (opcion_menu == OPCION_MENU_RECORRIDO_POR_ZONA):
-            determinar_recorrido_por_zona(pedidos)
+            recorrido_por_zona(pedidos)
 
         elif (opcion_menu == OPCION_MENU_PROCESAR_PEDIDOS_TRANSPORTE):
             funcion_opcion_3()
@@ -982,7 +1042,7 @@ def main():
         elif (opcion_menu == OPCION_INCIALIZAR_CINTA_TRANSPORTADORA):
             inicializar_cinta_transportadora()
 
-    print("--- ¡ Nos vemos en la próxima LOGISTIK ! ----")
-
+    print("\n\t --- ¡ Nos vemos en la próxima LOGISTIK ! ----")
+    print("")
 
 main()
