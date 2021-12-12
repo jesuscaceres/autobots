@@ -280,8 +280,7 @@ def calcular_recorrido_por_zona(zonas_geograficas: dict, zona: str, punto_partid
     recorrido: list = []
 
     for i in range(tamaño_recorrido):
-        ciudad_mas_cerca: str = \
-            sorted(ciudades.items(), key=lambda x: distance.distance(x[1], punto_comparacion).km)[0][0]
+        ciudad_mas_cerca: str = sorted(ciudades.items(), key=lambda x: distance.distance(x[1], punto_comparacion).km)[0][0]
         punto_comparacion = ciudades.get(ciudad_mas_cerca)
         recorrido.append(ciudad_mas_cerca)
         del ciudades[ciudad_mas_cerca]
