@@ -253,6 +253,32 @@ def obtener_zonas_geograficas(_pedidos:dict) -> dict:
 
     return zonas_geograficas
 
+def obtener_punto_partida() -> tuple: 
+    #Retorna las coordenadas del punto de partida del recorrido 
+    # (en nuestro caso el punto de partida siempre va a ser CABA, Buenos Aires)
+    geolocalizador = Nominatim(user_agent="autobots")
+    geo_ubicacion_punto_partida:str = geolocalizador.geocode(f"{CIUDAD_PUNTO_PARTIDA}, {PROVINCIA_PUNTO_PARTIDA}, {PAIS}") 
+    punto_partida:tuple = (float(geo_ubicacion_punto_partida.latitude), float(geo_ubicacion_punto_partida.longitude))
+
+    return punto_partida
+
+def calcular_recorrido_por_zona(zonas_geograficas:dict, zona:str, punto_partida:tuple) -> list:
+    #Calcula el recorrido optimo desde el punto de partida para una zona pasada por parametro
+    # Entrada (diccionario con las zonas y las ciudades de los pedidos actuales, el string de la zona a 
+    # ordenar y la tupla con las coordenadas del punto de partida)
+    ciudades:dict = zonas_geograficas.get(zona, {})
+    tamaño_recorrido:int = len(ciudades)
+    punto_comparacion:tuple = punto_partida
+    recorrido:list = []
+
+    for i in range(tamaño_recorrido):
+        ciudad_mas_cerca:str = sorted(ciudades.items(), key = lambda x: distance.distance(x[1], punto_comparacion).km)[0][0]
+        punto_comparacion = ciudades.get(ciudad_mas_cerca)
+        recorrido.append(ciudad_mas_cerca)
+        del ciudades[ciudad_mas_cerca]
+
+    return recorrido
+
 def  obtener_recorrido_por_zona(_pedidos:dict) -> None:
     #Imprime el recorrido optimo según la zona específicada por el usuario 
     """
