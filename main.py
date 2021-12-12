@@ -4,19 +4,30 @@ import os
 import json
 import csv
 from datetime import datetime
+from geopy.geocoders import Nominatim
+from geopy import distance
 
 #Constantes opciones del menu principal 
-CANTIDAD_OPCIONES_MENU:int = 8
-OPCION_MENU_ABM_PEDIDOS:int = 1
-OPCION_MENU_RECORRIDO_POR_ZONA:int = 2
-OPCION_MENU_PROCESAR_PEDIDOS_TRANSPORTE:int = 3
-OPCION_LISTAR_PEDIDOS_PROCESADOS:int = 4
-OPCION_VALORIZAR_PEDIDOS_ROSARIO:int = 5
-OPCION_ARTICULO_MAS_PEDIDO:int = 6
-OPCION_INCIALIZAR_CINTA_TRANSPORTADORA:int = 7
+CANTIDAD_OPCIONES_MENU: int = 8
+OPCION_MENU_ABM_PEDIDOS: int = 1
+OPCION_MENU_RECORRIDO_POR_ZONA: int = 2
+OPCION_MENU_PROCESAR_PEDIDOS_TRANSPORTE: int = 3
+OPCION_LISTAR_PEDIDOS_PROCESADOS: int = 4
+OPCION_VALORIZAR_PEDIDOS_ROSARIO: int = 5
+OPCION_ARTICULO_MAS_PEDIDO: int = 6
+OPCION_INCIALIZAR_CINTA_TRANSPORTADORA: int = 7
+
+#Constantes geolocalizacion
+LATITUD_35_GRADOS: float = 35
+LATITUD_40_GRADOS: float = 40
+PROVINCIA_PUNTO_PARTIDA: str = "Buenos Aires"
+CIUDAD_PUNTO_PARTIDA: str = "CABA"
+PAIS: str = "Argentina"
+
 # Precio en dólares
 PRECIO_BOTELLA = 15
 PRECIO_VASO = 8
+
 # Peso en gramos
 PESO_BOTELLA = 450
 PESO_VASO = 350
@@ -199,9 +210,112 @@ def menu() -> int:
     
     return int(opcion_user)
 
+def obtener_zonas_geograficas(_pedidos:dict) -> dict:
+    #Obtiene el listado de zonas con sus respectivas ciudades clasificadas segun latitud
+    """
+        ZONAS GEOGRAFICAS 
+        Zona Norte: Todas las ciudades cuya latitud sea menor a 35°
+        Zona centro: Todas las ciudades entre la latitud 35 y 40 grados
+        Zona Sur: Todas las ciudades cuya latitud sea mayor a 40 grados.
+        CABA: Todos los pedidos que sean de CABA.
+    """ 
+    geolocalizador = Nominatim(user_agent="autobots") 
+    ciudades:dict = {}
 
-def funcion_opcion_2():
-    pass 
+    zonas_geograficas:dict = {
+        "CABA":{},
+        "NORTE":{},
+        "SUR":{},
+        "CENTRO":{}
+    }  
+
+    for nro_pedido, datos_pedido in _pedidos.items():
+            pedido_ciudad:str = datos_pedido.get("ciudad", "CABA") 
+
+            if (pedido_ciudad not in ciudades.keys()):
+                #Solo proceso la ciudad si no la tengo agregada 
+                pedido_provincia:str = datos_pedido.get("provincia", "Buenos Aires")
+                geo_ubicacion:str = geolocalizador.geocode(f"{pedido_ciudad}, {pedido_provincia}, {PAIS}") 
+                ubicacion_ciudad:tuple = (float(geo_ubicacion.latitude), float(geo_ubicacion.longitude))
+                ciudades[pedido_ciudad] = ubicacion_ciudad
+                zona:str = "" 
+
+                if (pedido_ciudad == "CABA"):
+                    zona = "CABA"
+                elif (abs(ubicacion_ciudad[0]) < LATITUD_35_GRADOS):
+                    zona = "NORTE"
+                elif (abs(ubicacion_ciudad[0]) < LATITUD_40_GRADOS): 
+                   zona = "CENTRO"
+                else: 
+                    zona = "SUR"
+
+                zonas_geograficas[zona][pedido_ciudad] = ubicacion_ciudad
+
+    return zonas_geograficas
+
+def obtener_punto_partida() -> tuple: 
+    #Retorna las coordenadas del punto de partida del recorrido 
+    # (en nuestro caso el punto de partida siempre va a ser CABA, Buenos Aires)
+    geolocalizador = Nominatim(user_agent="autobots")
+    geo_ubicacion_punto_partida:str = geolocalizador.geocode(f"{CIUDAD_PUNTO_PARTIDA}, {PROVINCIA_PUNTO_PARTIDA}, {PAIS}") 
+    punto_partida:tuple = (float(geo_ubicacion_punto_partida.latitude), float(geo_ubicacion_punto_partida.longitude))
+
+    return punto_partida
+
+def calcular_recorrido_por_zona(zonas_geograficas:dict, zona:str, punto_partida:tuple) -> list:
+    #Calcula el recorrido optimo desde el punto de partida para una zona pasada por parametro
+    # Entrada (diccionario con las zonas y las ciudades de los pedidos actuales, el string de la zona a 
+    # ordenar y la tupla con las coordenadas del punto de partida)
+    ciudades:dict = zonas_geograficas.get(zona, {})
+    tamaño_recorrido:int = len(ciudades)
+    punto_comparacion:tuple = punto_partida
+    recorrido:list = []
+
+    for i in range(tamaño_recorrido):
+        ciudad_mas_cerca:str = sorted(ciudades.items(), key = lambda x: distance.distance(x[1], punto_comparacion).km)[0][0]
+        punto_comparacion = ciudades.get(ciudad_mas_cerca)
+        recorrido.append(ciudad_mas_cerca)
+        del ciudades[ciudad_mas_cerca]
+
+    return recorrido
+
+def imprimir_opciones_zonas() -> None: 
+    """
+        Imprime las opciones para las zonas geograficas
+    """
+    print("Escoge una zona geográfica para determinar el recorrido óptimo a realizar: ")
+    print("(1) - CABA")
+    print("(2) - ZONA NORTE ")
+    print("(3) - ZONA CENTRO ")
+    print("(4) - ZONA SUR ")
+
+def determinar_recorrido_por_zona(_pedidos:dict) -> None:
+    #Imprime el recorrido optimo según la zona específicada por el usuario 
+    """
+        ZONAS GEOGRAFICAS 
+        Zona Norte: Todas las ciudades cuya latitud sea menor a 35°
+        Zona centro: Todas las ciudades entre la latitud 35 y 40 grados
+        Zona Sur: Todas las ciudades cuya latitud sea mayor a 40 grados.
+        CABA: Todos los pedidos que sean de CABA.
+    """ 
+    #Solo imprime por pantalla el recorrido optimo para la zona ingresada por el usuario
+    listado_zonas:list[str] = ["CABA", "NORTE", "CENTRO", "SUR"]    
+    imprimir_opciones_zonas()
+    opcion_user:str = input("")
+
+    while not opcion_valida(opcion_user, len(listado_zonas)):
+        print("Por favor ingrese una opción válida: ")
+        imprimir_opciones_zonas()
+        opcion_user = input("")
+    
+    print("Calculando recorrido")
+    zonas_geograficas:dict = obtener_zonas_geograficas(_pedidos)
+    print("El recorrido más óptimo para la zona ingresada es: ")
+    punto_partida:tuple = obtener_punto_partida()
+    recorrido:list = calcular_recorrido_por_zona(zonas_geograficas, listado_zonas[int(opcion_user)-1], punto_partida)
+
+    for ciudad in recorrido:
+        print(ciudad)
 
 def funcion_opcion_3():
     pass 
@@ -719,7 +833,7 @@ def main():
             pedidos_abm(pedidos)
 
         elif (opcion_menu == OPCION_MENU_RECORRIDO_POR_ZONA):
-            funcion_opcion_2()
+            determinar_recorrido_por_zona(pedidos)
 
         elif (opcion_menu == OPCION_MENU_PROCESAR_PEDIDOS_TRANSPORTE):
             funcion_opcion_3()
