@@ -1,6 +1,7 @@
-
 /Lote0001
 know_HSV.py
 yolov3.cfg
 yolov3.weights
 coco.names
+botellas.txt
+vasos.txt
