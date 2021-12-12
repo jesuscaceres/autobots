@@ -109,15 +109,11 @@ def obtener_color(path) -> str:
     g = img[:, :, 1:2]
     r = img[:, :, 2:]
 
-    # computing the mean
     b_mean = int(np.mean(b))
     g_mean = int(np.mean(g))
     r_mean = int(np.mean(r))
-    # print(b_mean)
-    # print(g_mean)
-    # print(r_mean)
 
-    # displaying the most prominent color
+    # estableciendo el color dominante
     if (b_mean > g_mean and b_mean > r_mean):
         color = "Blue"
     elif (g_mean > r_mean and g_mean > b_mean):
@@ -184,7 +180,6 @@ def dibujar_cuadro_nombre(path, boxes, confs, colors, class_ids, classes, img, c
             color = colors[i]
             cv2.rectangle(img, (x,y), (x+w, y+h), color, 2)
             cv2.putText(img, label, (x, y + 20), font, 1, color, 1)
-            print(label + "  " + colores)
             contador_producto_color(label, copa, botella, colores)
 			
 
@@ -265,7 +260,7 @@ def funcion_opcion_5():
 def funcion_opcion_6():
     pass 
 
-def lector_imagenes() -> None:
+def inicializar_cinta_transportadora() -> None:
     """ 
     Función que ejecuta el resto de funciones para poder determinar el producto y color de la carpeta de lotes.
     """
@@ -278,8 +273,6 @@ def lector_imagenes() -> None:
         imagen_path = input_imagen_path + "/" + archivo
         detectar_imagen(imagen_path, copa, botella)
 
-    print(copa)
-    print(botella)
     cv2.destroyAllWindows()
 
 
@@ -784,7 +777,7 @@ def main():
             funcion_opcion_6()
 
         elif (opcion_menu == OPCION_INCIALIZAR_CINTA_TRANSPORTADORA):
-            lector_imagenes()
+            inicializar_cinta_transportadora()
 
     print("--- ¡ Nos vemos en la próxima LOGISTIK ! ----")
 
