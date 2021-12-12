@@ -4,6 +4,8 @@ import os
 import json
 import csv
 from datetime import datetime
+from geopy.geocoders import Nominatim
+from geopy import distance
 
 #Constantes opciones del menu principal 
 CANTIDAD_OPCIONES_MENU:int = 8
@@ -14,9 +16,18 @@ OPCION_LISTAR_PEDIDOS_PROCESADOS:int = 4
 OPCION_VALORIZAR_PEDIDOS_ROSARIO:int = 5
 OPCION_ARTICULO_MAS_PEDIDO:int = 6
 OPCION_INCIALIZAR_CINTA_TRANSPORTADORA:int = 7
+
+#Constantes geolocalizacion
+LATIUD_35_GRADOS:float = 35
+LATIUD_40_GRADOS:float = 40
+PROVINCIA_PUNTO_PARTIDA:str = "Buenos Aires"
+CIUDAD_PUNTO_PARTIDA:str = "CABA"
+PAIS:str = "Argentina"
+
 # Precio en dólares
 PRECIO_BOTELLA = 15
 PRECIO_VASO = 8
+
 # Peso en gramos
 PESO_BOTELLA = 450
 PESO_VASO = 350
@@ -199,6 +210,61 @@ def menu() -> int:
     
     return int(opcion_user)
 
+def  obtener_recorrido_por_zona(_pedidos:dict) -> None:
+    #Imprime el recorrido optimo según la zona específicada por el usuario 
+    """
+        ZONAS GEOGRAFICAS 
+        Zona Norte: Todas las ciudades cuya latitud sea menor a 35°
+        Zona centro: Todas las ciudades entre la latitud 35 y 40 grados
+        Zona Sur: Todas las ciudades cuya latitud sea mayor a 40 grados.
+        CABA: Todos los pedidos que sean de CABA.
+    """ 
+    geolocalizador = Nominatim(user_agent="autobots") 
+    geo_ubicacion_center:str = geolocalizador.geocode(f"{CIUDAD_PUNTO_PARTIDA}, {PROVINCIA_PUNTO_PARTIDA}, {PAIS}") 
+    punto_partida:tuple = (float(geo_ubicacion_center.latitude), float(geo_ubicacion_center.longitude))
+    ciudades:dict = {}
+
+    zonas_geograficas:dict = {
+        "CABA":{},
+        "NORTE":{},
+        "SUR":{},
+        "CENTRO":{}
+    }  
+
+    recorrido_por_zona:dict = {
+        "CABA":[],
+        "NORTE":[],
+        "SUR":[],
+        "CENTRO":[]
+    }
+
+    for nro_pedido, datos_pedido in _pedidos.items():
+            pedido_ciudad:str = datos_pedido.get("ciudad", "CABA")  
+
+            if (pedido_ciudad not in ciudades.keys()):
+                #Solo proceso la ciudad si no la tengo agregada 
+                pedido_provincia:str = datos_pedido.get("provincia", "Buenos Aires")
+                geo_ubicacion:str = geolocalizador.geocode(f"{pedido_ciudad}, {pedido_provincia}, {PAIS}") 
+                ubicacion_ciudad:tuple = (float(geo_ubicacion.latitude), float(geo_ubicacion.longitude))
+                ciudades[pedido_ciudad] = ubicacion_ciudad
+
+                if (pedido_ciudad == "CABA"):
+                    zonas_geograficas["CABA"][pedido_ciudad] = ciudades.get(pedido_ciudad, {})
+                elif (abs(ubicacion_ciudad[0]) < LATIUD_35_GRADOS):
+                    zonas_geograficas["NORTE"][pedido_ciudad] = ciudades.get(pedido_ciudad, {})
+                elif (abs(ubicacion_ciudad[0]) < LATIUD_40_GRADOS): 
+                    zonas_geograficas["CENTRO"][pedido_ciudad] = ciudades.get(pedido_ciudad, {})
+                else: 
+                    zonas_geograficas["SUR"][pedido_ciudad] = ciudades.get(pedido_ciudad, {})
+
+    for zona, ciudades in zonas_geograficas.items():
+        if (zona == "CABA"): 
+            recorrido_por_zona["CABA"] = ["CABA"]
+        else: 
+            lista_ordenada_menor_distancia:list = sorted(ciudades.items(), key = lambda x: distance.distance(x[1], punto_partida).km)
+            recorrido_por_zona[zona] = lista_ordenada_menor_distancia
+
+    print(recorrido_por_zona)
 
 def funcion_opcion_2():
     pass 
