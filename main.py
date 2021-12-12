@@ -16,6 +16,7 @@ OPCION_LISTAR_PEDIDOS_PROCESADOS: int = 4
 OPCION_VALORIZAR_PEDIDOS_ROSARIO: int = 5
 OPCION_ARTICULO_MAS_PEDIDO: int = 6
 OPCION_INCIALIZAR_CINTA_TRANSPORTADORA: int = 7
+
 # Constantes geolocalizacion
 LATITUD_35_GRADOS: float = 35
 LATITUD_40_GRADOS: float = 40
@@ -32,6 +33,7 @@ ZONA_NORTE: str = "NORTE"
 # Precio en dólares
 PRECIO_BOTELLA: float = 15
 PRECIO_VASO: float = 8
+
 # Peso en kilogramos
 PESO_BOTELLA: float = 0.450
 PESO_VASO: float = 0.350
@@ -171,14 +173,15 @@ def imprimir_opciones_logistik() -> None:
         Imprime las posibles opciones de menu por pantalla para que el
         usuario sepa que puede hacer con el programa principal
     """
-    print("(1) - Alta, Baja o Modificación de Pedidos")
-    print("(2) - Determinar recorrido por zona geografica")
-    print("(3) - Procesar pedidos optimizando carga de transporte")
-    print("(4) - Listar pedidos procesados")
-    print("(5) - Valorizar pedidos de la ciudad de 'Rosario'")
-    print("(6) - Artículo más pedido")
-    print("(7) - Inicializar cinta transportadora")
-    print("(8) - SALIR ")
+    print('')
+    print("\t(1) - Alta, Baja o Modificación de Pedidos")
+    print("\t(2) - Determinar recorrido por zona geografica")
+    print("\t(3) - Procesar pedidos optimizando carga de transporte")
+    print("\t(4) - Listar pedidos procesados")
+    print("\t(5) - Valorizar pedidos de la ciudad de 'Rosario'")
+    print("\t(6) - Artículo más pedido")
+    print("\t(7) - Inicializar cinta transportadora")
+    print("\t(8) - Salir ")
 
 
 def opcion_valida(opcion: str, cantidad_opciones: int) -> bool:
@@ -210,12 +213,12 @@ def menu() -> int:
         por el usuario corresponda con alguna de las posibles opciones
     """
     print("")
-    print("Bienvenido Logistik, por favor escoge una opción: ")
+    print("\tBienvenido Logistik, por favor escoge una opción: ")
     imprimir_opciones_logistik()
     opcion_user: str = input('\n\t\tIngrese su opción: ')
 
     while not opcion_valida(opcion_user, CANTIDAD_OPCIONES_MENU):
-        print("Por favor ingrese una opción válida: ")
+        print("\n\tPor favor ingrese una opción válida: ")
         imprimir_opciones_logistik()
         opcion_user = input('\n\t\tIngrese su opción: ')
 
@@ -346,12 +349,11 @@ def imprimir_opciones_zonas_geograficas() -> None:
         Imprime las opciones para las zonas geograficas
     """
     print("")
-    print("")
-    print("Escoge una zona geográfica para determinar el recorrido óptimo a realizar: ")
-    print("(1) - CABA")
-    print("(2) - ZONA NORTE ")
-    print("(3) - ZONA CENTRO ")
-    print("(4) - ZONA SUR ")
+    print("\tEscoge una zona geográfica para determinar el recorrido óptimo a realizar: ")
+    print("\t(1) - CABA")
+    print("\t(2) - ZONA NORTE ")
+    print("\t(3) - ZONA CENTRO ")
+    print("\t(4) - ZONA SUR ")
 
 
 def recorrido_por_zona(_pedidos: dict) -> None:
@@ -376,18 +378,15 @@ def recorrido_por_zona(_pedidos: dict) -> None:
     opcion_user: str = input('\n\t\tIngrese su opción: ')
 
     while not opcion_valida(opcion_user, len(listado_zonas)):
-        print("Por favor ingrese una opción válida: ")
+        print("\n\tPor favor ingrese una opción válida: ")
         imprimir_opciones_zonas_geograficas()
         opcion_user = input('\n\t\tIngrese su opción: ')
 
-    print("Calculando recorrido")
+    print("\n\tCalculando recorrido")
     zonas_geograficas: dict = obtener_zonas_geograficas(_pedidos)
-    print("El recorrido más óptimo para la zona ingresada es: ")
+    print("\n\tEl recorrido más óptimo para la zona ingresada es: ", end = '')
     recorrido: list = calcular_recorrido_por_zona(zonas_geograficas, listado_zonas[int(opcion_user) - 1], obtener_punto_partida())
-
-    for ciudad in recorrido:
-        print(ciudad)
-
+    print(", ".join(ciudad for ciudad in recorrido))
 
 def funcion_opcion_3():
     pass
@@ -519,7 +518,7 @@ def cargar_pedidos() -> dict:
     return pedidos_archivo
 
 
-def leer_opcion(opciones: list[str]) -> str:
+def leer_opcion(opciones: list) -> str:
     """Muestra las posibles opciones y lee la opción ingresada por el usuario.
 
     Args:
@@ -576,7 +575,7 @@ def obtener_valor_en_rango(campo: str, inicio: int, fin: int) -> float:
     return valor
 
 
-def obtener_opciones_validas(lista: list[str]) -> list[str]:
+def obtener_opciones_validas(lista: list) -> list:
     """Devuelve la lista de posibles opciones validas
 
     Args:
@@ -975,7 +974,7 @@ def main():
         elif (opcion_menu == OPCION_INCIALIZAR_CINTA_TRANSPORTADORA):
             lector_imagenes()
 
-    print("--- ¡ Nos vemos en la próxima LOGISTIK ! ----")
-
+    print("\n\t --- ¡ Nos vemos en la próxima LOGISTIK ! ----")
+    print("")
 
 main()
