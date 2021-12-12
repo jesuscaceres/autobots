@@ -38,6 +38,14 @@ PRECIO_VASO: float = 8
 PESO_BOTELLA: float = 0.450
 PESO_VASO: float = 0.350
 
+#Traductor colores
+colores:dict = {
+    "Black" : "Negro",
+    "Blue" : "Azul",
+    "Yellow" : "Amarillo",
+    "Green" : "Verde",
+    "Red" : "Rojo"
+}
 
 def cargar_yolo() -> None:
     """
@@ -180,7 +188,7 @@ def contador_producto_color (etiqueta_nombre:str, copa:list, botella:list, color
             else: 
                 botella[0][colores] += 1
     else:
-        print("PROCESO DETENIDO, se reanuda en 1 minuto")
+        print("\tPROCESO DETENIDO, se reanuda en 1 minuto")
 
 def dibujar_cuadro_nombre(path, boxes, confs, colors, class_ids, classes, img, copa, botella) -> None:
     """ 
@@ -672,11 +680,45 @@ def obtener_valor_total_por_ciudad(_pedidos: dict) -> None:
 def funcion_opcion_6():
     pass
 
+def escribir_productos(diccionario: dict, archivo):
+    for color, cantidad in diccionario.items():
+        archivo.write(f"{colores.get(color)} {cantidad} \n")
+ 
+def escribir_productos_procesados(botellas:list, copas:list) -> None:
+    """ 
+    Escribe el total de productos procesados en los archivos .txt 
+    correspondientes, clasificados por color 
 
+    Parametros
+    ----------
+    botellas: list[{}]
+        Lista con los diccionarios de cada color y el total procesado
+        de botellas, que se va a escribir en botellas.txt
+    copas: list[{}] 
+        Lista con los diccionarios de cada color y el total procesado
+        de copas, que se va a escribir en el archivo copas.txt
+
+    Retorno
+    -------
+        None
+            La funcion directamente escribe en los archivos botellas.txt y vasos.txt
+            pero no retorna nada. 
+    """
+
+    with open("botellas.txt","w") as archivo_botellas:
+        escribir_productos(botellas[0], archivo_botellas)
+
+    with open("vasos.txt","w") as archivo_copas:
+        escribir_productos(copas[0], archivo_copas)
+
+       
 def inicializar_cinta_transportadora() -> None:
     """ 
     Función que ejecuta el resto de funciones para poder determinar el producto y color de la carpeta de lotes.
     """
+    print()
+    print(f"\tIniciando cinta transportadora..")
+    print(f"\tReconociendo productos..")
     botella:list = [{}]
     copa:list = [{}]
     input_imagen_path = os.getcwd() + "/Lote0001"
@@ -687,7 +729,12 @@ def inicializar_cinta_transportadora() -> None:
         detectar_imagen(imagen_path, copa, botella)
 
     cv2.destroyAllWindows()
-
+    #Escribo la totalizacion de productos en los archivos pedidos
+    escribir_productos_procesados(botella, copa)
+    
+    print("")
+    print(f"\tProceso finalizado con éxito")
+    print(f"\tLas cantidades procesadas por color se pueden visualizar en los archivos botellas.txt y vasos.txt")
 
 def cargar_pedidos() -> dict:
     """Lee un archivo con extensión .csv para cargar los pedidos en un diccionario en memoria
