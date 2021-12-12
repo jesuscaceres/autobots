@@ -365,8 +365,33 @@ def determinar_recorrido_por_zona(_pedidos:dict) -> None:
 def funcion_opcion_3():
     pass 
 
-def funcion_opcion_4():
-    pass 
+def ordenar_fecha(elem):
+    return datetime.strptime(elem[2], '%d/%m/%Y')
+
+def mostrar_pedidos_completos(pedidos):
+    cantidad_completados: int = 0
+    pedido_entregado: list = []
+    for key in pedidos:
+        nombre: str = pedidos[key]["cliente"]
+        fecha: str = pedidos[key]["fecha"]
+        for items in pedidos[key]:
+            if items == "enviado":
+                if pedidos[key][items] == True:
+                    cantidad_completados += 1
+                    pedido_entregado.append([nombre, key, fecha])
+    pedido_entregado.sort(key=ordenar_fecha)
+    return cantidad_completados, pedido_entregado
+
+
+def imprimir_pedidos_ordenados(pedidos):
+    cantidad, pedido_completo = mostrar_pedidos_completos(pedidos)
+    print(f"Se entregaron {cantidad} pedidos")
+    for pedido in pedido_completo:
+        cliente: str = pedido[0]
+        numero: int = pedido[1]
+        fecha: str = pedido[2]
+        print(f"El pedido número {numero} del día {fecha} a nombre de {cliente}.")
+
 
 def funcion_opcion_5():
     pass 
@@ -882,7 +907,7 @@ def main():
             funcion_opcion_3()
         
         elif (opcion_menu == OPCION_LISTAR_PEDIDOS_PROCESADOS):
-            funcion_opcion_4()
+            imprimir_pedidos_ordenados(pedidos)
 
         elif (opcion_menu == OPCION_VALORIZAR_PEDIDOS_ROSARIO):
             funcion_opcion_5()
