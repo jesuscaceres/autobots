@@ -434,8 +434,158 @@ def recorrido_por_zona(_pedidos: dict) -> None:
     recorrido: list = calcular_recorrido_por_zona(zonas_geograficas, listado_zonas[int(opcion_user) - 1], obtener_punto_partida())
     print(", ".join(ciudad for ciudad in recorrido))
 
-def funcion_opcion_3():
-    pass
+def armar_archivo(lista_de_datos:list)->None:
+    #Arma el archivo salida.txt con los datos pertinentes.
+    contador:int = 0
+    with open("salida.txt","a+") as salida:
+        for elemento in (lista_de_datos[0:3]):
+            salida.write(elemento)
+            salida.write("\n")
+        for elemento in (lista_de_datos[3]):
+            lista = ", ".join(lista_de_datos[3])+"."
+            salida.write(lista)
+        salida.write("\n")
+
+
+def sumar_peso(productos:dict,peso:float)->float:
+    #Pre: ingresa los productos y el peso del pedido hasta el momento.
+    #Devuelve la suma del peso del pedido agregado al anterior.
+
+    cantidad_botellas: int = 0
+    cantidad_vasos: int = 0
+    peso_b: float = 0
+    peso_v: float = 0
+    for codigo,colores in productos.items():
+        if (codigo == "1334"):
+            cantidad = colores
+            for color,cantidad in cantidad.items():
+                cantidad_botellas +=cantidad["cantidad"]
+    for codigo,colores in productos.items():
+        if (codigo == "568"):
+            cantidad = colores
+            for color,cantidad in cantidad.items():
+                cantidad_vasos +=cantidad["cantidad"]
+
+    peso = cantidad_botellas * PESO_BOTELLA + cantidad_vasos * PESO_VASO
+
+    return peso
+
+
+def chequeo_de_peso(peso:float,peso_anterior:float,dict_utilitarios_peso:dict):
+    #Verifica que el peso se mantenga dentro del rango dado por los utilitarios restantes.
+
+    if ("Utilitario 003" in dict_utilitarios_peso and peso <= 500):
+        peso = peso
+    elif("Utilitario 001" in dict_utilitarios_peso and peso <= 600):
+        peso = peso
+    elif("Utilitario 002" in dict_utilitarios_peso and peso <= 1000):
+        peso = peso
+    elif("Utilitario 004" in dict_utilitarios_peso and peso <= 2000):
+        peso = peso
+    else:
+        peso = peso_anterior
+    
+    return peso
+
+
+def seleccionar_utilitario(dict_utilitarios_peso:dict,peso_anterior:float)->str:
+    #Selecciona un utilitario del diccionario de acuerdo al peso.
+    utilitario:str = ""
+      
+    if(peso_anterior <= 2000 and "Utilitario 003" not in dict_utilitarios_peso and "Utilitario 001" not in dict_utilitarios_peso and "Utilitario 002" not in dict_utilitarios_peso):
+        utilitario = "Utilitario 004"
+    elif(peso_anterior <= 1000 and "Utilitario 003" not in dict_utilitarios_peso and "Utilitario 001" not in dict_utilitarios_peso):
+        utilitario = "Utilitario 002"
+    elif(peso_anterior <= 600 and "Utilitario 003" not in dict_utilitarios_peso):
+        utilitario = "Utilitario 001"
+    elif(peso_anterior <= 500 and "Utilitario 003" in dict_utilitarios_peso):
+        utilitario = "Utilitario 003"
+
+
+    return utilitario   
+
+
+def modifica_diccionario_utilitarios(dict_utilitarios_peso:dict,utilitario:str)->dict:
+    #Quita el utilitario seleccionado para el pedido.
+    del dict_utilitarios_peso[utilitario]
+    
+    return dict_utilitarios_peso
+
+
+def cambiar_a_enviado_en_pedidos(lista_de_envios_a_modificar:list,pedidos:dict)->dict:
+    #Cambia a enviados los pedidos que entraron en los utilitarios.
+    pedidos_enviados:dict = dict()
+    for ciudad in lista_de_envios_a_modificar:
+        for numero,datos in pedidos.items():
+            if (datos["ciudad"] == ciudad):
+                envio = datos
+                datos["enviado"] = True
+
+    return pedidos
+
+
+def armar_salida_texto(recorrido:list,zone:str,dict_utilitarios_peso:dict,pedidos:dict)->dict:
+
+    #Crea una lista de datos para agregar en salida.txt
+    #Pre: recibe el recorrido y la zona de dicho recorrido
+    #Pos: envia el listado de datos para crear ó agregar en salida.txt
+
+    peso_botella: float = 0
+    peso_vaso: float = 0
+    peso: float = 0
+    peso_anterior: float = 0
+    lista_de_datos:list = list()
+    lista_ciudades_enviados:list = list()
+    lista_de_envios_a_modificar: list = list()
+    lista_de_datos.append(zone)
+
+    for ciudad in recorrido:
+        for numero,datos in pedidos.items():
+            if (datos["ciudad"] == ciudad):
+                productos = datos["productos"]
+                peso_anterior += peso
+                peso += sumar_peso(productos,peso)
+                control = chequeo_de_peso(peso,peso_anterior,dict_utilitarios_peso)
+                if (control == peso):
+                    lista_ciudades_enviados.append(ciudad)
+                    lista_de_envios_a_modificar.append(ciudad)
+                else:
+                    if(len(lista_ciudades_enviados)==1):
+                        peso = peso
+                    else:
+                        peso = peso_anterior
+
+    peso = int(peso)
+    if (peso == 0):
+        peso = "No enviado."
+    if (peso == "No enviado."):
+        peso = peso
+    else:
+        peso = str(peso)+"KG"
+
+    utilitario: str = seleccionar_utilitario(dict_utilitarios_peso,peso_anterior)
+    dict_utilitarios_peso = modifica_diccionario_utilitarios(dict_utilitarios_peso,utilitario)
+    lista_de_datos.append(utilitario)
+    lista_de_datos.append(peso)
+    lista_de_datos.append(lista_ciudades_enviados)
+
+    armar_archivo(lista_de_datos)
+
+    cambiar_a_enviado_en_pedidos(lista_de_envios_a_modificar,pedidos)
+    print(pedidos)
+
+    return dict_utilitarios_peso
+
+
+def procesar_pedido_por_utilitario(recorrido_norte:list,recorrido_centro:list,recorrido_sur:list,recorrido_caba:list,pedidos:dict)->None:
+
+    dict_utilitarios_peso:dict = {"Utilitario 003":500,"Utilitario 001":600,"Utilitario 002":1000,"Utilitario 004":2000}
+
+    dict_utilitarios_peso = armar_salida_texto(recorrido_norte,"Zona Norte:",dict_utilitarios_peso,pedidos)
+    dict_utilitarios_peso = armar_salida_texto(recorrido_centro,"Zona Centro:",dict_utilitarios_peso,pedidos)
+    dict_utilitarios_peso = armar_salida_texto(recorrido_sur,"Zona Sur:",dict_utilitarios_peso,pedidos)
+    dict_utilitarios_peso = armar_salida_texto(recorrido_caba,"CABA",dict_utilitarios_peso,pedidos)
+
 
 
 def ordenar_fecha(elem):
@@ -1028,7 +1178,14 @@ def main():
             recorrido_por_zona(pedidos)
 
         elif (opcion_menu == OPCION_MENU_PROCESAR_PEDIDOS_TRANSPORTE):
-            funcion_opcion_3()
+
+            #recorrido_norte: list = 
+            #recorrido_centro: list =
+            #recorrido_sur: list =
+            #recorrido_caba: list =
+
+            #procesar_pedido_por_utilitario(recorrido_norte:list,recorrido_centro:list,recorrido_sur:list,recorrido_caba:list,pedidos:dict)->None:
+
 
         elif (opcion_menu == OPCION_LISTAR_PEDIDOS_PROCESADOS):
             imprimir_pedidos_ordenados(pedidos)
