@@ -7,7 +7,7 @@ from datetime import datetime
 from geopy.geocoders import Nominatim
 from geopy import distance
 
-#Constantes opciones del menu principal 
+# Constantes opciones del menu principal
 CANTIDAD_OPCIONES_MENU: int = 8
 OPCION_MENU_ABM_PEDIDOS: int = 1
 OPCION_MENU_RECORRIDO_POR_ZONA: int = 2
@@ -16,151 +16,152 @@ OPCION_LISTAR_PEDIDOS_PROCESADOS: int = 4
 OPCION_VALORIZAR_PEDIDOS_ROSARIO: int = 5
 OPCION_ARTICULO_MAS_PEDIDO: int = 6
 OPCION_INCIALIZAR_CINTA_TRANSPORTADORA: int = 7
-
-#Constantes geolocalizacion
+# Constantes geolocalizacion
 LATITUD_35_GRADOS: float = 35
 LATITUD_40_GRADOS: float = 40
 PROVINCIA_PUNTO_PARTIDA: str = "Buenos Aires"
 CIUDAD_PUNTO_PARTIDA: str = "CABA"
 PAIS: str = "Argentina"
-
 # Precio en dólares
-PRECIO_BOTELLA = 15
-PRECIO_VASO = 8
-
-# Peso en gramos
-PESO_BOTELLA = 450
-PESO_VASO = 350
+PRECIO_BOTELLA: float = 15
+PRECIO_VASO: float = 8
+# Peso en kilogramos
+PESO_BOTELLA: float = 0.450
+PESO_VASO: float = 0.350
 
 
 def load_yolo():
-	net = cv2.dnn.readNet("yolov3.weights", "yolov3.cfg")
-	classes = []
-	with open("coco.names", "r") as f:
-		classes = [line.strip() for line in f.readlines()] 
-	
-	output_layers = [layer_name for layer_name in net.getUnconnectedOutLayersNames()]
-	colors = np.random.uniform(0, 255, size=(len(classes), 3))
-	return net, classes, colors, output_layers
+    net = cv2.dnn.readNet("yolov3.weights", "yolov3.cfg")
+    classes = []
+    with open("coco.names", "r") as f:
+        classes = [line.strip() for line in f.readlines()]
+
+    output_layers = [layer_name for layer_name in net.getUnconnectedOutLayersNames()]
+    colors = np.random.uniform(0, 255, size=(len(classes), 3))
+    return net, classes, colors, output_layers
 
 
 def load_image(img_path):
-	# image loading
-	img = cv2.imread(img_path)
-	img = cv2.resize(img, None, fx=0.4, fy=0.4)
-	height, width, channels = img.shape
-	return img, height, width, channels
+    # image loading
+    img = cv2.imread(img_path)
+    img = cv2.resize(img, None, fx=0.4, fy=0.4)
+    height, width, channels = img.shape
+    return img, height, width, channels
 
 
-def detect_objects(img, net, outputLayers):			
-	blob = cv2.dnn.blobFromImage(img, scalefactor=0.00392, size=(320, 320), mean=(0, 0, 0), swapRB=True, crop=False)
-	net.setInput(blob)
-	outputs = net.forward(outputLayers)
-	return blob, outputs
+def detect_objects(img, net, outputLayers):
+    blob = cv2.dnn.blobFromImage(img, scalefactor=0.00392, size=(320, 320), mean=(0, 0, 0), swapRB=True, crop=False)
+    net.setInput(blob)
+    outputs = net.forward(outputLayers)
+    return blob, outputs
 
 
 def get_box_dimensions(outputs, height, width):
-	boxes = []
-	confs = []
-	class_ids = []
-	for output in outputs:
-		for detect in output:
-			scores = detect[5:]
-			class_id = np.argmax(scores)
-			conf = scores[class_id]
-			if conf > 0.3:
-				center_x = int(detect[0] * width)
-				center_y = int(detect[1] * height)
-				w = int(detect[2] * width)
-				h = int(detect[3] * height)
-				x = int(center_x - w/2)
-				y = int(center_y - h / 2)
-				boxes.append([x, y, w, h])
-				confs.append(float(conf))
-				class_ids.append(class_id)
-	return boxes, confs, class_ids
+    boxes = []
+    confs = []
+    class_ids = []
+    for output in outputs:
+        for detect in output:
+            scores = detect[5:]
+            class_id = np.argmax(scores)
+            conf = scores[class_id]
+            if conf > 0.3:
+                center_x = int(detect[0] * width)
+                center_y = int(detect[1] * height)
+                w = int(detect[2] * width)
+                h = int(detect[3] * height)
+                x = int(center_x - w / 2)
+                y = int(center_y - h / 2)
+                boxes.append([x, y, w, h])
+                confs.append(float(conf))
+                class_ids.append(class_id)
+    return boxes, confs, class_ids
+
 
 def get_color(path):
-	img = cv2.imread(path)
-	color:str = ""
-	b = img[:, :, :1]
-	g = img[:, :, 1:2]
-	r = img[:, :, 2:]
+    img = cv2.imread(path)
+    color: str = ""
+    b = img[:, :, :1]
+    g = img[:, :, 1:2]
+    r = img[:, :, 2:]
 
-	# computing the mean
-	b_mean = int(np.mean(b))
-	g_mean = int(np.mean(g))
-	r_mean = int(np.mean(r))
-	print(b_mean)
-	print(g_mean)
-	print(r_mean)
+    # computing the mean
+    b_mean = int(np.mean(b))
+    g_mean = int(np.mean(g))
+    r_mean = int(np.mean(r))
+    print(b_mean)
+    print(g_mean)
+    print(r_mean)
 
-	# displaying the most prominent color
-	if (b_mean > g_mean and b_mean > r_mean):
-		color = "Blue"
-	elif (g_mean > r_mean and g_mean > b_mean):
-		color = "Green"
-	elif (r_mean > b_mean and r_mean > g_mean):
-		color = "Red"
-	elif (g_mean == r_mean and (b_mean != r_mean or b_mean != g_mean)):
-		color = "Yellow"
-	elif (r_mean == b_mean and r_mean == g_mean):
-		color = "Black"
-	
-	return color
+    # displaying the most prominent color
+    if (b_mean > g_mean and b_mean > r_mean):
+        color = "Blue"
+    elif (g_mean > r_mean and g_mean > b_mean):
+        color = "Green"
+    elif (r_mean > b_mean and r_mean > g_mean):
+        color = "Red"
+    elif (g_mean == r_mean and (b_mean != r_mean or b_mean != g_mean)):
+        color = "Yellow"
+    elif (r_mean == b_mean and r_mean == g_mean):
+        color = "Black"
 
-def count (label, cup, bottle, colores):
-	if label == "cup":
-		if len(cup) == 1:
-			cup.append(1)
-			if colores not in cup[0]:
-				cup[0][colores] = 1
-		else:
-			cup[1] = cup[1] + 1
-			if colores not in cup[0]:
-				cup[0][colores] = 1
-			else: cup[0][colores] += 1
-	elif label == "bottle":
-		if len(bottle) == 1:
-			bottle.append(1)
-			if colores not in bottle[0]:
-				bottle[0][colores] = 1
-		else:
-			bottle[1] = bottle[1] + 1
-			if colores not in bottle[0]:
-				bottle[0][colores] = 1
-			else: 
-				bottle[0][colores] += 1
-	else:
-		print("PROCESO DETENIDO, se reanuda en 1 minuto")
+    return color
+
+
+def count(label, cup, bottle, colores):
+    if label == "cup":
+        if len(cup) == 1:
+            cup.append(1)
+            if colores not in cup[0]:
+                cup[0][colores] = 1
+        else:
+            cup[1] = cup[1] + 1
+            if colores not in cup[0]:
+                cup[0][colores] = 1
+            else:
+                cup[0][colores] += 1
+    elif label == "bottle":
+        if len(bottle) == 1:
+            bottle.append(1)
+            if colores not in bottle[0]:
+                bottle[0][colores] = 1
+        else:
+            bottle[1] = bottle[1] + 1
+            if colores not in bottle[0]:
+                bottle[0][colores] = 1
+            else:
+                bottle[0][colores] += 1
+    else:
+        print("PROCESO DETENIDO, se reanuda en 1 minuto")
+
 
 def draw_labels(path, boxes, confs, colors, class_ids, classes, img, cup, bottle):
-	indexes = cv2.dnn.NMSBoxes(boxes, confs, 0.5, 0.4)
-	font = cv2.FONT_HERSHEY_PLAIN
-	colores = get_color(path)
-	for i in range(len(boxes)):
-		if i in indexes:
-			x, y, w, h = boxes[i]
-			label = str(classes[class_ids[i]])
-			color = colors[i]
-			cv2.rectangle(img, (x,y), (x+w, y+h), color, 2)
-			cv2.putText(img, label, (x, y + 20), font, 1, color, 1)
-			print(label + "  " + colores)
-			count(label, cup, bottle, colores)
-			
+    indexes = cv2.dnn.NMSBoxes(boxes, confs, 0.5, 0.4)
+    font = cv2.FONT_HERSHEY_PLAIN
+    colores = get_color(path)
+    for i in range(len(boxes)):
+        if i in indexes:
+            x, y, w, h = boxes[i]
+            label = str(classes[class_ids[i]])
+            color = colors[i]
+            cv2.rectangle(img, (x, y), (x + w, y + h), color, 2)
+            cv2.putText(img, label, (x, y + 20), font, 1, color, 1)
+            print(label + "  " + colores)
+            count(label, cup, bottle, colores)
 
-def image_detect(img_path, cup, bottle): 
-	model, classes, colors, output_layers = load_yolo()
-	image, height, width, channels = load_image(img_path)
-	blob, outputs = detect_objects(image, model, output_layers)
-	boxes, confs, class_ids = get_box_dimensions(outputs, height, width)
-	draw_labels(img_path, boxes, confs, colors, class_ids, classes, image, cup, bottle)
-	cv2.waitKey(0)
+
+def image_detect(img_path, cup, bottle):
+    model, classes, colors, output_layers = load_yolo()
+    image, height, width, channels = load_image(img_path)
+    blob, outputs = detect_objects(image, model, output_layers)
+    boxes, confs, class_ids = get_box_dimensions(outputs, height, width)
+    draw_labels(img_path, boxes, confs, colors, class_ids, classes, image, cup, bottle)
+    cv2.waitKey(0)
 
 
 def imprimir_opciones_logistik() -> None:
     """
-        Imprime las posibles opciones de menu por pantalla para que el 
+        Imprime las posibles opciones de menu por pantalla para que el
         usuario sepa que puede hacer con el programa principal
     """
     print("(1) - Alta, Baja o Modificación de Pedidos")
@@ -171,115 +172,123 @@ def imprimir_opciones_logistik() -> None:
     print("(6) - Artículo más pedido")
     print("(7) - Inicializar cinta transportadora")
     print("(8) - SALIR ")
-    
-def opcion_valida(opcion:str, cantidad_opciones:int) -> bool:
-    """ 
-    Valida si la opcion ingresada es válida de acuerdo al menu del programa 
+
+
+def opcion_valida(opcion: str, cantidad_opciones: int) -> bool:
+    """
+    Valida si la opcion ingresada es válida de acuerdo al menu del programa
 
     Parametros
     ----------
-    opcion: str 
-        La opcion ingresada por el usuario a través del teclado 
-    cantidad_opciones: int 
+    opcion: str
+        La opcion ingresada por el usuario a través del teclado
+    cantidad_opciones: int
         La cantidad de opciones que puede tener el menu del programa
 
     Retorno
     -------
-        bool 
+        bool
             Retorna un booleano que indica la validación de la opción
             Evaluando que el ingreso no esa una opciń en blanco, vacía o fuera
-            del rango establecido por cantidad_opciones    
+            del rango establecido por cantidad_opciones
     """
 
-    return not (opcion.isspace() or len(opcion) == 0) and (opcion.isnumeric() and int(opcion) in range(1, cantidad_opciones + 1))
+    return not (opcion.isspace() or len(opcion) == 0) and (
+            opcion.isnumeric() and int(opcion) in range(1, cantidad_opciones + 1))
+
 
 def menu() -> int:
     """
-        Hace la impresion del menu y valida que la opcion ingresada 
+        Hace la impresion del menu y valida que la opcion ingresada
         por el usuario corresponda con alguna de las posibles opciones
     """
     print("")
     print("Bienvenido Logistik, por favor escoge una opción: ")
     imprimir_opciones_logistik()
-    opcion_user:str = input("")
+    opcion_user: str = input("")
 
     while not opcion_valida(opcion_user, CANTIDAD_OPCIONES_MENU):
         print("Por favor ingrese una opción válida: ")
         imprimir_opciones_logistik()
         opcion_user = input("")
-    
+
     return int(opcion_user)
 
-def obtener_zonas_geograficas(_pedidos:dict) -> dict:
-    #Obtiene el listado de zonas con sus respectivas ciudades clasificadas segun latitud
+
+def obtener_zonas_geograficas(_pedidos: dict) -> dict:
+    # Obtiene el listado de zonas con sus respectivas ciudades clasificadas segun latitud
     """
-        ZONAS GEOGRAFICAS 
+        ZONAS GEOGRAFICAS
         Zona Norte: Todas las ciudades cuya latitud sea menor a 35°
         Zona centro: Todas las ciudades entre la latitud 35 y 40 grados
         Zona Sur: Todas las ciudades cuya latitud sea mayor a 40 grados.
         CABA: Todos los pedidos que sean de CABA.
-    """ 
-    geolocalizador = Nominatim(user_agent="autobots") 
-    ciudades:dict = {}
+    """
+    geolocalizador = Nominatim(user_agent="autobots")
+    ciudades: dict = {}
 
-    zonas_geograficas:dict = {
-        "CABA":{},
-        "NORTE":{},
-        "SUR":{},
-        "CENTRO":{}
-    }  
+    zonas_geograficas: dict = {
+        "CABA": {},
+        "NORTE": {},
+        "SUR": {},
+        "CENTRO": {}
+    }
 
     for nro_pedido, datos_pedido in _pedidos.items():
-            pedido_ciudad:str = datos_pedido.get("ciudad", "CABA") 
+        pedido_ciudad: str = datos_pedido.get("ciudad", "CABA")
 
-            if (pedido_ciudad not in ciudades.keys()):
-                #Solo proceso la ciudad si no la tengo agregada 
-                pedido_provincia:str = datos_pedido.get("provincia", "Buenos Aires")
-                geo_ubicacion:str = geolocalizador.geocode(f"{pedido_ciudad}, {pedido_provincia}, {PAIS}") 
-                ubicacion_ciudad:tuple = (float(geo_ubicacion.latitude), float(geo_ubicacion.longitude))
-                ciudades[pedido_ciudad] = ubicacion_ciudad
-                zona:str = "" 
+        if (pedido_ciudad not in ciudades.keys()):
+            # Solo proceso la ciudad si no la tengo agregada
+            pedido_provincia: str = datos_pedido.get("provincia", "Buenos Aires")
+            geo_ubicacion: str = geolocalizador.geocode(f"{pedido_ciudad}, {pedido_provincia}, {PAIS}")
+            ubicacion_ciudad: tuple = (float(geo_ubicacion.latitude), float(geo_ubicacion.longitude))
+            ciudades[pedido_ciudad] = ubicacion_ciudad
+            zona: str = ""
 
-                if (pedido_ciudad == "CABA"):
-                    zona = "CABA"
-                elif (abs(ubicacion_ciudad[0]) < LATITUD_35_GRADOS):
-                    zona = "NORTE"
-                elif (abs(ubicacion_ciudad[0]) < LATITUD_40_GRADOS): 
-                   zona = "CENTRO"
-                else: 
-                    zona = "SUR"
+            if (pedido_ciudad == "CABA"):
+                zona = "CABA"
+            elif (abs(ubicacion_ciudad[0]) < LATITUD_35_GRADOS):
+                zona = "NORTE"
+            elif (abs(ubicacion_ciudad[0]) < LATITUD_40_GRADOS):
+                zona = "CENTRO"
+            else:
+                zona = "SUR"
 
-                zonas_geograficas[zona][pedido_ciudad] = ubicacion_ciudad
+            zonas_geograficas[zona][pedido_ciudad] = ubicacion_ciudad
 
     return zonas_geograficas
 
-def obtener_punto_partida() -> tuple: 
-    #Retorna las coordenadas del punto de partida del recorrido 
+
+def obtener_punto_partida() -> tuple:
+    # Retorna las coordenadas del punto de partida del recorrido
     # (en nuestro caso el punto de partida siempre va a ser CABA, Buenos Aires)
     geolocalizador = Nominatim(user_agent="autobots")
-    geo_ubicacion_punto_partida:str = geolocalizador.geocode(f"{CIUDAD_PUNTO_PARTIDA}, {PROVINCIA_PUNTO_PARTIDA}, {PAIS}") 
-    punto_partida:tuple = (float(geo_ubicacion_punto_partida.latitude), float(geo_ubicacion_punto_partida.longitude))
+    geo_ubicacion_punto_partida: str = geolocalizador.geocode(
+        f"{CIUDAD_PUNTO_PARTIDA}, {PROVINCIA_PUNTO_PARTIDA}, {PAIS}")
+    punto_partida: tuple = (float(geo_ubicacion_punto_partida.latitude), float(geo_ubicacion_punto_partida.longitude))
 
     return punto_partida
 
-def calcular_recorrido_por_zona(zonas_geograficas:dict, zona:str, punto_partida:tuple) -> list:
-    #Calcula el recorrido optimo desde el punto de partida para una zona pasada por parametro
-    # Entrada (diccionario con las zonas y las ciudades de los pedidos actuales, el string de la zona a 
+
+def calcular_recorrido_por_zona(zonas_geograficas: dict, zona: str, punto_partida: tuple) -> list:
+    # Calcula el recorrido optimo desde el punto de partida para una zona pasada por parametro
+    # Entrada (diccionario con las zonas y las ciudades de los pedidos actuales, el string de la zona a
     # ordenar y la tupla con las coordenadas del punto de partida)
-    ciudades:dict = zonas_geograficas.get(zona, {})
-    tamaño_recorrido:int = len(ciudades)
-    punto_comparacion:tuple = punto_partida
-    recorrido:list = []
+    ciudades: dict = zonas_geograficas.get(zona, {})
+    tamaño_recorrido: int = len(ciudades)
+    punto_comparacion: tuple = punto_partida
+    recorrido: list = []
 
     for i in range(tamaño_recorrido):
-        ciudad_mas_cerca:str = sorted(ciudades.items(), key = lambda x: distance.distance(x[1], punto_comparacion).km)[0][0]
+        ciudad_mas_cerca: str = sorted(ciudades.items(), key=lambda x: distance.distance(x[1], punto_comparacion).km)[0][0]
         punto_comparacion = ciudades.get(ciudad_mas_cerca)
         recorrido.append(ciudad_mas_cerca)
         del ciudades[ciudad_mas_cerca]
 
     return recorrido
 
-def imprimir_opciones_zonas() -> None: 
+
+def imprimir_opciones_zonas() -> None:
     """
         Imprime las opciones para las zonas geograficas
     """
@@ -289,45 +298,100 @@ def imprimir_opciones_zonas() -> None:
     print("(3) - ZONA CENTRO ")
     print("(4) - ZONA SUR ")
 
-def determinar_recorrido_por_zona(_pedidos:dict) -> None:
-    #Imprime el recorrido optimo según la zona específicada por el usuario 
+
+def determinar_recorrido_por_zona(_pedidos: dict) -> None:
+    # Imprime el recorrido optimo según la zona específicada por el usuario
     """
-        ZONAS GEOGRAFICAS 
+        ZONAS GEOGRAFICAS
         Zona Norte: Todas las ciudades cuya latitud sea menor a 35°
         Zona centro: Todas las ciudades entre la latitud 35 y 40 grados
         Zona Sur: Todas las ciudades cuya latitud sea mayor a 40 grados.
         CABA: Todos los pedidos que sean de CABA.
-    """ 
-    #Solo imprime por pantalla el recorrido optimo para la zona ingresada por el usuario
-    listado_zonas:list[str] = ["CABA", "NORTE", "CENTRO", "SUR"]    
+    """
+    # Solo imprime por pantalla el recorrido optimo para la zona ingresada por el usuario
+    listado_zonas: list[str] = ["CABA", "NORTE", "CENTRO", "SUR"]
     imprimir_opciones_zonas()
-    opcion_user:str = input("")
+    opcion_user: str = input("")
 
     while not opcion_valida(opcion_user, len(listado_zonas)):
         print("Por favor ingrese una opción válida: ")
         imprimir_opciones_zonas()
         opcion_user = input("")
-    
+
     print("Calculando recorrido")
-    zonas_geograficas:dict = obtener_zonas_geograficas(_pedidos)
+    zonas_geograficas: dict = obtener_zonas_geograficas(_pedidos)
     print("El recorrido más óptimo para la zona ingresada es: ")
-    punto_partida:tuple = obtener_punto_partida()
-    recorrido:list = calcular_recorrido_por_zona(zonas_geograficas, listado_zonas[int(opcion_user)-1], punto_partida)
+    punto_partida: tuple = obtener_punto_partida()
+    recorrido: list = calcular_recorrido_por_zona(zonas_geograficas, listado_zonas[int(opcion_user) - 1], punto_partida)
 
     for ciudad in recorrido:
         print(ciudad)
 
+
 def funcion_opcion_3():
-    pass 
+    pass
+
 
 def funcion_opcion_4():
-    pass 
+    pass
 
-def funcion_opcion_5():
-    pass 
+
+def imprimir_total(articulos_enviados: dict, ciudad: str) -> None:
+    """Imprime por pantalla el coste total de los artículos enviados a determinada ciudad.
+    Args:
+        articulos_enviados (dict): Diccionario con los articulos enviados detallando cantidad y costos.
+        ciudad (str): Ciudad dónde fueron enviados los artículos.
+    """
+    if len(articulos_enviados) > 0:
+        print(f"\n\t\t\tSe enviaron los siguientes artículos a la ciudad de '{ciudad}':")
+        for key in articulos_enviados.keys():
+            precio = PRECIO_BOTELLA if key == "1334" else PRECIO_VASO
+            if key == "568":
+                print(f"\n\t\t({articulos_enviados[key]['cantidad']}) vasos x ${precio} usd c/u")
+            else:
+                print(f"\n\t\t({articulos_enviados[key]['cantidad']}) botellas x ${precio} usd c/u")
+            print(f"\t\tSubtotal --- ${articulos_enviados[key]['bruto']} usd")
+            print(f"\t\tDescuento -- {articulos_enviados[key]['descuento']}%")
+            print(f"\t\t{'-' * 30}")
+            print(f"\t\tTOTAL ------ ${articulos_enviados[key]['neto']} usd")
+    else:
+        print(f"\n\t\tNo se ha envíado ningún artículo a {ciudad}.")
+
+
+def obtener_valor_total_por_ciudad(_pedidos: dict) -> None:
+    """Permite conocer el valor total de los articulos enviados a determinada ciudad.
+    Args:
+         _pedidos (dict): Diccionario que contiene la estructura base de los pedidos.
+    """
+    articulos_enviados: dict = {}
+    for nro_pedido in _pedidos.keys():
+        if _pedidos[nro_pedido]["enviado"] and (_pedidos[nro_pedido]["ciudad"].upper() == "Rosario".upper()):
+            productos: dict = _pedidos[nro_pedido]["productos"]
+            descuento: float = _pedidos[nro_pedido]["descuento"]
+            for codigo in productos.keys():
+                colores: dict = productos[codigo]
+                precio: float = PRECIO_BOTELLA if codigo == "1334" else PRECIO_VASO
+                for color in colores.keys():
+                    cantidad: int = colores[color]["cantidad"]
+                    if codigo not in articulos_enviados.keys():
+                        articulos_enviados[codigo] = {
+                            "cantidad": cantidad,
+                            "descuento": descuento,
+                            "bruto": float(precio * cantidad),
+                            "neto": (precio * cantidad) * (100 - descuento) / 100
+                        }
+                    else:
+                        item = articulos_enviados[codigo]
+                        item["cantidad"] += cantidad
+                        item["bruto"] += float(precio * cantidad)
+                        item["neto"] += (precio * cantidad) * (100 - descuento) / 100
+
+    imprimir_total(articulos_enviados, "Rosario")
+
 
 def funcion_opcion_6():
-    pass 
+    pass
+
 
 def lector_imagenes():
     bottle = [{}]
@@ -823,12 +887,12 @@ def pedidos_abm(_pedidos: dict) -> None:
 
 
 def main():
-    opcion_menu:int = 0
+    opcion_menu: int = 0
     pedidos: dict = cargar_pedidos()
-  
+
     while (not opcion_menu == CANTIDAD_OPCIONES_MENU):
         opcion_menu = menu()
-       
+
         if (opcion_menu == OPCION_MENU_ABM_PEDIDOS):
             pedidos_abm(pedidos)
 
@@ -837,12 +901,12 @@ def main():
 
         elif (opcion_menu == OPCION_MENU_PROCESAR_PEDIDOS_TRANSPORTE):
             funcion_opcion_3()
-        
+
         elif (opcion_menu == OPCION_LISTAR_PEDIDOS_PROCESADOS):
             funcion_opcion_4()
 
         elif (opcion_menu == OPCION_VALORIZAR_PEDIDOS_ROSARIO):
-            funcion_opcion_5()
+            obtener_valor_total_por_ciudad(pedidos)
 
         elif (opcion_menu == OPCION_ARTICULO_MAS_PEDIDO):
             funcion_opcion_6()
