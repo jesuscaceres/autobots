@@ -10,6 +10,8 @@ Chilly-Bottles TP2 Guido, Costa 2021
 ## Requerimientos 
 Instalar librerias opencv y geopy 
 
+Para la carga de pedidos mediante el archivo local .csv es necesario que este se encuentre dentro de la carpeta csv y que su nombre sea "pedidos.csv"
+
 ## Instalacion de librerias necesarias: 
 ### Linux 
 Abrir la terminal (ctrl + T) y ejecutar: 
