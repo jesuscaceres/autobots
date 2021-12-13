@@ -459,8 +459,48 @@ def obtener_valor_total_por_ciudad(_pedidos: dict) -> None:
     imprimir_total(articulos_enviados, "Rosario")
 
 
-def funcion_opcion_6():
-    pass
+def articulo_mas_pedido(pedidos):
+    contador_vaso = ["VASO", 0]
+    contador_botella = ["BOTELLA", 0]
+    for numero in pedidos:
+        producto: dict = pedidos[numero]["productos"]
+        for codigo in producto:
+            for colores in producto[codigo]:
+                color = producto[codigo][colores]
+                if codigo == 568:
+                    contador_vaso[1] += color["cantidad"]
+                else:
+                    contador_botella[1] += color["cantidad"]
+    if contador_vaso[1] > contador_botella[1]:
+        return contador_vaso
+    else:
+        return contador_botella
+
+
+def articulo_mas_entregado(pedidos):
+    vasos_entregados = 0
+    botellas_entregadas = 0
+    for key in pedidos:
+        productos = pedidos[key]["productos"]
+        enviado = pedidos[key]["enviado"]
+        if enviado == True:
+            for producto in productos:
+                color_producto = productos[producto]
+                for item in color_producto:
+                    cantidad_descuento = color_producto[item]
+                    if producto == 568:
+                        vasos_entregados += cantidad_descuento["cantidad"]
+                    if producto == 1334:
+                        botellas_entregadas += cantidad_descuento["cantidad"]
+    return vasos_entregados, botellas_entregadas
+
+def imprimir_articulo_mas_vendido(pedidos):
+    articulo_vendido = articulo_mas_pedido(pedidos)
+    vasos_entregados, botellas_entregadas = articulo_mas_entregado(pedidos)
+    if articulo_vendido[0] == "VASO":
+        print(f"El artículo más solicitado es el {articulo_vendido[0]} y se entregaron {vasos_entregados} de ellos.")
+    else:
+        print(f"El artículo más solicitado es la {articulo_vendido[0]} y se entregaron {botellas_entregadas} de ellas.")
 
 
 def inicializar_cinta_transportadora() -> None:
@@ -977,7 +1017,7 @@ def main():
             obtener_valor_total_por_ciudad(pedidos)
 
         elif (opcion_menu == OPCION_ARTICULO_MAS_PEDIDO):
-            funcion_opcion_6()
+            imprimir_articulo_mas_vendido(pedidos)
 
         elif (opcion_menu == OPCION_INCIALIZAR_CINTA_TRANSPORTADORA):
             inicializar_cinta_transportadora()
