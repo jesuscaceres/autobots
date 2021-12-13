@@ -32,4 +32,4 @@ Estando ubicado en el directorio donde se encuentra el main.py, abrir la termina
     pip install geopy
     pip install csv
     pip install certifi
-    pip install opencv-python
+    
