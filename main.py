@@ -449,9 +449,8 @@ def armar_archivo(lista_de_datos:list)->None:
         for elemento in (lista_de_datos[0:3]):
             salida.write(elemento)
             salida.write("\n")
-        for elemento in (lista_de_datos[3]):
-            lista = ", ".join(lista_de_datos[3])+"."
-            salida.write(lista)
+        lista = ", ".join(lista_de_datos[3])+"."
+        salida.write(lista)
         salida.write("\n")
 
 
@@ -1226,12 +1225,15 @@ def main():
 
         elif (opcion_menu == OPCION_MENU_PROCESAR_PEDIDOS_TRANSPORTE):
 
-            #recorrido_norte: list = 
-            #recorrido_centro: list =
-            #recorrido_sur: list =
-            #recorrido_caba: list =
+            zonas_geograficas = obtener_zonas_geograficas(pedidos)
+            punto_partida = obtener_punto_partida()
 
-            #procesar_pedido_por_utilitario(recorrido_norte:list,recorrido_centro:list,recorrido_sur:list,recorrido_caba:list,pedidos:dict)->None:
+            recorrido_norte: list = calcular_recorrido_por_zona(zonas_geograficas,ZONA_NORTE,punto_partida)
+            recorrido_centro: list = calcular_recorrido_por_zona(zonas_geograficas,ZONA_CENTRO,punto_partida)
+            recorrido_sur: list = calcular_recorrido_por_zona(zonas_geograficas,ZONA_SUR,punto_partida)
+            recorrido_caba: list = calcular_recorrido_por_zona(zonas_geograficas,ZONA_CABA,punto_partida)
+
+            procesar_pedido_por_utilitario(recorrido_norte:list,recorrido_centro:list,recorrido_sur:list,recorrido_caba:list,pedidos:dict)->None:
 
 
         elif (opcion_menu == OPCION_LISTAR_PEDIDOS_PROCESADOS):
