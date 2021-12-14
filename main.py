@@ -641,11 +641,25 @@ def armado_de_salidatxt(pedidos:dict)->None:
     print("\tLos datos de pedidos que han sido enviados pueden encontrarse en el archivo salida.txt")
 
 
-def ordenar_fecha(elem):
-    return datetime.strptime(elem[2], '%d/%m/%Y')
+def ordenar_fecha(pedidos_entregados:list):
+    """
+    Funcion que ordena de menor a mayor las fechas de los pedidos.
+    Parámetros:
+         pedidos (dict): Diccionario que contiene la estructura base de los pedidos.
+    Retorno:
+            Retorna la lista de pedidos entregados ordenada por fecha.
+    """
+    return datetime.strptime(pedidos_entregados[2], '%d/%m/%Y')
 
 
 def mostrar_pedidos_completos(pedidos):
+    """
+    Funcion que cuenta la cantidad de pedidos completados y, aquellos completados, los almacena en una lista.
+    Parámetros:
+         pedidos (dict): Diccionario que contiene la estructura base de los pedidos.
+    Retorno:
+        Retorna la cantidad de pedidos completados y una lista con los pedidos que se completaron.
+    """
     cantidad_completados: int = 0
     pedido_entregado: list = []
     for key in pedidos:
@@ -660,7 +674,12 @@ def mostrar_pedidos_completos(pedidos):
     return cantidad_completados, pedido_entregado
 
 
-def imprimir_pedidos_ordenados(pedidos):
+def imprimir_pedidos_ordenados(pedidos:dict) -> None:
+    """
+    Funcion que imprime en pantalla los pedidos ordenados por fecha.
+    Parámetros:
+         pedidos (dict): Diccionario que contiene la estructura base de los pedidos.
+    """
     cantidad, pedido_completo = mostrar_pedidos_completos(pedidos)
     print("")
     print(f"\tSe entregaron {cantidad} pedidos:")
@@ -725,9 +744,16 @@ def obtener_valor_total_por_ciudad(_pedidos: dict) -> None:
     imprimir_total(articulos_enviados, "Rosario")
 
 
-def articulo_mas_pedido(pedidos):
-    contador_vaso = ["VASO", 0]
-    contador_botella = ["BOTELLA", 0]
+def articulo_mas_pedido(pedidos:dict) -> list:
+    """
+    Funcion que calcula cual de los dos productos es el mas solicitado.
+    Parámetros:
+         pedidos (dict): Diccionario que contiene la estructura base de los pedidos.
+    Retorno:
+        Retorna la lista del artículo más solicitado.
+    """
+    contador_vaso:list = ["VASO", 0]
+    contador_botella:list = ["BOTELLA", 0]
     for numero in pedidos:
         producto: dict = pedidos[numero]["productos"]
         for codigo in producto:
@@ -743,12 +769,19 @@ def articulo_mas_pedido(pedidos):
         return contador_botella
 
 
-def articulo_mas_entregado(pedidos):
-    vasos_entregados = 0
-    botellas_entregadas = 0
-    for key in pedidos:
-        productos = pedidos[key]["productos"]
-        enviado = pedidos[key]["enviado"]
+def articulo_mas_entregado(pedidos:dict) -> int:
+    """
+    Funcion que calcula la cantidad entregada del artículo mas solicitado.
+    Parámetros:
+         pedidos (dict): Diccionario que contiene la estructura base de los pedidos.
+    Retorno:
+        Retorna la cantidad de producto entregado.
+    """
+    vasos_entregados:int = 0
+    botellas_entregadas:int = 0
+    for pedido in pedidos:
+        productos = pedidos[pedido]["productos"]
+        enviado = pedidos[pedido]["enviado"]
         if enviado:
             for producto in productos:
                 color_producto = productos[producto]
@@ -761,15 +794,25 @@ def articulo_mas_entregado(pedidos):
     return vasos_entregados, botellas_entregadas
 
 
-def imprimir_articulo_mas_vendido(pedidos):
+def imprimir_articulo_mas_vendido(pedidos:dict) -> None:
+    """
+    Funcion que imprime en pantalla el artículo más vendido y cuantos de ellos se entregaron.
+    Parámetros:
+         pedidos (dict): Diccionario que contiene la estructura base de los pedidos.
+    """
     articulo_vendido = articulo_mas_pedido(pedidos)
     vasos_entregados, botellas_entregadas = articulo_mas_entregado(pedidos)
     print("")
     if articulo_vendido[0] == "VASO":
-        print(f"\n\tEl artículo más solicitado es el {articulo_vendido[0]} y se entregaron {vasos_entregados} de ellos.")
+        if vasos_entregados != 0:
+            print(f"\n\tEl artículo más solicitado es el {articulo_vendido[0]} y se entregaron {vasos_entregados} de ellos.")
+        else:
+            print(f"\n\tAún no se ha enviado ningún pedido.")
     else:
-        print(f"\n\tEl artículo más solicitado es la {articulo_vendido[0]} y se entregaron {botellas_entregadas} de ellas.")
-
+        if botellas_entregadas != 0:
+            print(f"\n\tEl artículo más solicitado es la {articulo_vendido[0]} y se entregaron {botellas_entregadas} de ellas.")
+        else:
+            print(f"\n\tAún no se ha enviado ningún pedido.")
 
 def escribir_productos(diccionario: dict, archivo):
     for color, cantidad in diccionario.items():
