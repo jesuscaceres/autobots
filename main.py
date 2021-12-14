@@ -630,10 +630,15 @@ def armado_de_salidatxt(pedidos:dict)->None:
     zonas_geograficas = obtener_zonas_geograficas(pedidos)
     punto_partida = obtener_punto_partida()
 
-    recorrido_norte: list = calcular_recorrido_por_zona(zonas_geograficas,"ZONA NORTE",punto_partida)
-    recorrido_centro: list = calcular_recorrido_por_zona(zonas_geograficas,"ZONA CENTRO",punto_partida)
-    recorrido_sur: list = calcular_recorrido_por_zona(zonas_geograficas,"ZONA SUR",punto_partida)
+    recorrido_norte: list = calcular_recorrido_por_zona(zonas_geograficas,"NORTE",punto_partida)
+    recorrido_centro: list = calcular_recorrido_por_zona(zonas_geograficas,"CENTRO",punto_partida)
+    recorrido_sur: list = calcular_recorrido_por_zona(zonas_geograficas,"SUR",punto_partida)
     recorrido_caba: list = calcular_recorrido_por_zona(zonas_geograficas,"CABA",punto_partida)
+
+    procesar_pedido_por_utilitario(recorrido_norte,recorrido_centro,recorrido_sur,recorrido_caba,pedidos)
+
+    print("")
+    print("\t\tLos datos de pedidos que han sido enviados pueden encontrarse en el archivo salida.txt")
 
 
 def ordenar_fecha(elem):
@@ -657,12 +662,13 @@ def mostrar_pedidos_completos(pedidos):
 
 def imprimir_pedidos_ordenados(pedidos):
     cantidad, pedido_completo = mostrar_pedidos_completos(pedidos)
-    print(f"Se entregaron {cantidad} pedidos")
+    print(f"\t\tSe entregaron {cantidad} pedidos:")
+    print("")
     for pedido in pedido_completo:
         cliente: str = pedido[0]
         numero: int = pedido[1]
         fecha: str = pedido[2]
-        print(f"El pedido número {numero} del día {fecha} a nombre de {cliente}.")
+        print(f"\t\tEl pedido número {numero} del día {fecha} a nombre de {cliente}.")
 
 
 def imprimir_total(articulos_enviados: dict, ciudad: str) -> None:
@@ -726,7 +732,7 @@ def articulo_mas_pedido(pedidos):
         for codigo in producto:
             for colores in producto[codigo]:
                 color = producto[codigo][colores]
-                if codigo == 568:
+                if codigo == "568":
                     contador_vaso[1] += color["cantidad"]
                 else:
                     contador_botella[1] += color["cantidad"]
@@ -747,9 +753,9 @@ def articulo_mas_entregado(pedidos):
                 color_producto = productos[producto]
                 for item in color_producto:
                     cantidad_descuento = color_producto[item]
-                    if producto == 568:
+                    if producto == "568":
                         vasos_entregados += cantidad_descuento["cantidad"]
-                    if producto == 1334:
+                    if producto == "1334":
                         botellas_entregadas += cantidad_descuento["cantidad"]
     return vasos_entregados, botellas_entregadas
 
