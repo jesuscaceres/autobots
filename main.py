@@ -466,12 +466,12 @@ def mostrar_pedidos_completos(pedidos):
 
 def imprimir_pedidos_ordenados(pedidos):
     cantidad, pedido_completo = mostrar_pedidos_completos(pedidos)
-    print(f"Se entregaron {cantidad} pedidos")
+    print(f"\n\tSe entregaron {cantidad} pedidos")
     for pedido in pedido_completo:
         cliente: str = pedido[0]
         numero: int = pedido[1]
         fecha: str = pedido[2]
-        print(f"El pedido número {numero} del día {fecha} a nombre de {cliente}.")
+        print(f"\n\tEl pedido número {numero} del día {fecha} a nombre de {cliente}.")
 
 
 def imprimir_total(articulos_enviados: dict, ciudad: str) -> None:
@@ -566,9 +566,9 @@ def imprimir_articulo_mas_vendido(pedidos):
     articulo_vendido = articulo_mas_pedido(pedidos)
     vasos_entregados, botellas_entregadas = articulo_mas_entregado(pedidos)
     if articulo_vendido[0] == "VASO":
-        print(f"El artículo más solicitado es el {articulo_vendido[0]} y se entregaron {vasos_entregados} de ellos.")
+        print(f"\n\tEl artículo más solicitado es el {articulo_vendido[0]} y se entregaron {vasos_entregados} de ellos.")
     else:
-        print(f"El artículo más solicitado es la {articulo_vendido[0]} y se entregaron {botellas_entregadas} de ellas.")
+        print(f"\n\tEl artículo más solicitado es la {articulo_vendido[0]} y se entregaron {botellas_entregadas} de ellas.")
 
 def escribir_productos(diccionario: dict, archivo):
     for color, cantidad in diccionario.items():
