@@ -283,6 +283,40 @@ def menu() -> int:
 
     return int(opcion_user)
 
+def agregar_ciudad(zonas_geograficas: dict, pedido_ciudad: str, ubicacion_ciudad: tuple):
+    """
+    Agrega la ciudad a la zona geográfica que corresponde según su punto de
+    ubicación (latitud, longitud) clasificandola de acuerdo a su altitud
+
+    Parametros
+    ----------
+    zonas_geograficas: dict
+        Diccionario que contiene las claves de cada zona geográfica y un subdiccionario
+        con cada una de las ciudades que ya estan registradas, con su respectiva ubicacion
+    pedido_ciudad: int
+        El string que representa el nombre de la ciudad a agregar (Clave en el subdiccionario 
+        de zonas_geograficas)
+    ubicacion_ciudad: tuple
+        Representa el punto de ubicacion ene l plano de la ciudad, obtenida a través de geopy. 
+
+    Retorno
+    -------
+        None:
+            Solo agrega al diccionario, la ciudad segun corresponde
+    """
+
+    zona = ZONA_CABA
+
+    if pedido_ciudad == ZONA_CABA:
+        zona = zona
+    elif abs(ubicacion_ciudad[0]) < LATITUD_35_GRADOS:
+        zona = ZONA_NORTE
+    elif abs(ubicacion_ciudad[0]) < LATITUD_40_GRADOS:
+        zona = ZONA_CENTRO
+    else:
+        zona = ZONA_SUR
+
+    zonas_geograficas[zona][pedido_ciudad] = ubicacion_ciudad
 
 def obtener_zonas_geograficas(_pedidos: dict) -> dict:
     """ 
@@ -326,24 +360,18 @@ def obtener_zonas_geograficas(_pedidos: dict) -> dict:
         if pedido_ciudad not in ciudades.keys():
             # Solo proceso ciudades que no he procesado
             pedido_provincia: str = datos_pedido.get("provincia", "Buenos Aires")
-            geo_ubicacion = geolocalizador.geocode(f"{pedido_ciudad}, {pedido_provincia}, {PAIS}")
-            ubicacion_ciudad: tuple = (float(geo_ubicacion.latitude), float(geo_ubicacion.longitude))
-            ciudades[pedido_ciudad] = ubicacion_ciudad
-            zona = ZONA_CABA
 
-        if pedido_ciudad == ZONA_CABA:
-            zona = zona
-        elif abs(ubicacion_ciudad[0]) < LATITUD_35_GRADOS:
-            zona = ZONA_NORTE
-        elif abs(ubicacion_ciudad[0]) < LATITUD_40_GRADOS:
-            zona = ZONA_CENTRO
-        else:
-            zona = ZONA_SUR
+            try:
+                geo_ubicacion = geolocalizador.geocode(f"{pedido_ciudad}, {pedido_provincia}, {PAIS}")
+                ubicacion_ciudad: tuple = (float(geo_ubicacion.latitude), float(geo_ubicacion.longitude))
+                ciudades[pedido_ciudad] = ubicacion_ciudad
+                agregar_ciudad(zonas_geograficas, pedido_ciudad, ubicacion_ciudad)
 
-        zonas_geograficas[zona][pedido_ciudad] = ubicacion_ciudad
+            except (TimeoutError, Exception):
+                print('\n\tHubo un error al querer conectarse con Geopy para obtener las ubicaciones. Por favor intente nuevamente en unos minutos.')
+                menu()
 
     return zonas_geograficas
-
 
 def obtener_punto_partida() -> tuple:
     """ 
@@ -400,11 +428,17 @@ def calcular_recorrido_por_zona(zonas_geograficas: dict, zona: str, punto_partid
     recorrido: list = []
 
     for i in range(tamanio_recorrido):
-        ciudad_mas_cerca: str = \
-            sorted(ciudades.items(), key=lambda x: distance.distance(x[1], punto_comparacion).km)[0][0]
-        punto_comparacion = ciudades.get(ciudad_mas_cerca)
-        recorrido.append(ciudad_mas_cerca)
-        del ciudades[ciudad_mas_cerca]
+        try:
+            ciudad_mas_cerca: str = \
+                sorted(ciudades.items(), key=lambda x: distance.distance(x[1], punto_comparacion).km)[0][0]
+            punto_comparacion = ciudades.get(ciudad_mas_cerca)
+            recorrido.append(ciudad_mas_cerca)
+            del ciudades[ciudad_mas_cerca]
+
+        except (TimeoutError, Exception): 
+            print('\n\tHubo un error al querer conectarse con Geopy para calcular las distancias entre ciudades.')
+            print('\n\tPor favor intente nuevamente en unos minutos.')
+            menu()
 
     return recorrido
 
@@ -447,13 +481,16 @@ def recorrido_por_zona(_pedidos: dict) -> None:
         imprimir_opciones_zonas_geograficas()
         opcion_user = input('\n\t\tIngrese su opción: ')
 
-    print("\n\tCalculando recorrido")
+    print("\n\tCalculando recorrido...")
     zonas_geograficas: dict = obtener_zonas_geograficas(_pedidos)
-    print("\n\tEl recorrido más óptimo para la zona ingresada es: ", end='')
     recorrido: list = calcular_recorrido_por_zona(zonas_geograficas, listado_zonas[int(opcion_user) - 1],
                                                   obtener_punto_partida())
-    print(", ".join(ciudad for ciudad in recorrido))
 
+    if len(recorrido) >= 1:            
+        print("\n\tEl recorrido más óptimo para la zona ingresada es: ", end='')
+        print(", ".join(ciudad for ciudad in recorrido))
+    else: 
+        print("\n\tNo se encontró ningún pedido que tenga una ciudad asociada para la zona geográfica ingresada.")
 
 def armar_archivo(lista_de_datos:list)->None:
     #Arma el archivo salida.txt con los datos pertinentes.
