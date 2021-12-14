@@ -630,10 +630,15 @@ def armado_de_salidatxt(pedidos:dict)->None:
     zonas_geograficas = obtener_zonas_geograficas(pedidos)
     punto_partida = obtener_punto_partida()
 
-    recorrido_norte: list = calcular_recorrido_por_zona(zonas_geograficas,"ZONA NORTE",punto_partida)
-    recorrido_centro: list = calcular_recorrido_por_zona(zonas_geograficas,"ZONA CENTRO",punto_partida)
-    recorrido_sur: list = calcular_recorrido_por_zona(zonas_geograficas,"ZONA SUR",punto_partida)
+    recorrido_norte: list = calcular_recorrido_por_zona(zonas_geograficas,"NORTE",punto_partida)
+    recorrido_centro: list = calcular_recorrido_por_zona(zonas_geograficas,"CENTRO",punto_partida)
+    recorrido_sur: list = calcular_recorrido_por_zona(zonas_geograficas,"SUR",punto_partida)
     recorrido_caba: list = calcular_recorrido_por_zona(zonas_geograficas,"CABA",punto_partida)
+
+    procesar_pedido_por_utilitario(recorrido_norte,recorrido_centro,recorrido_sur,recorrido_caba,pedidos)
+
+    print("")
+    print("\tLos datos de pedidos que han sido enviados pueden encontrarse en el archivo salida.txt")
 
 
 def ordenar_fecha(elem):
@@ -657,7 +662,9 @@ def mostrar_pedidos_completos(pedidos):
 
 def imprimir_pedidos_ordenados(pedidos):
     cantidad, pedido_completo = mostrar_pedidos_completos(pedidos)
-    print(f"\n\tSe entregaron {cantidad} pedidos")
+    print("")
+    print(f"\tSe entregaron {cantidad} pedidos:")
+    print("")
     for pedido in pedido_completo:
         cliente: str = pedido[0]
         numero: int = pedido[1]
@@ -672,19 +679,19 @@ def imprimir_total(articulos_enviados: dict, ciudad: str) -> None:
         ciudad (str): Ciudad dónde fueron enviados los artículos.
     """
     if len(articulos_enviados) > 0:
-        print(f"\n\t\t\tSe enviaron los siguientes artículos a la ciudad de '{ciudad}':")
+        print(f"\n\tSe enviaron los siguientes artículos a la ciudad de '{ciudad}':")
         for key in articulos_enviados.keys():
             precio = PRECIO_BOTELLA if key == "1334" else PRECIO_VASO
             if key == "568":
-                print(f"\n\t\t({articulos_enviados[key]['cantidad']}) vasos x ${precio} usd c/u")
+                print(f"\n\t({articulos_enviados[key]['cantidad']}) vasos x ${precio} usd c/u")
             else:
-                print(f"\n\t\t({articulos_enviados[key]['cantidad']}) botellas x ${precio} usd c/u")
-            print(f"\t\tSubtotal --- ${articulos_enviados[key]['bruto']} usd")
-            print(f"\t\tDescuento -- {articulos_enviados[key]['descuento']}%")
-            print(f"\t\t{'-' * 30}")
-            print(f"\t\tTOTAL ------ ${articulos_enviados[key]['neto']} usd")
+                print(f"\n\t({articulos_enviados[key]['cantidad']}) botellas x ${precio} usd c/u")
+            print(f"\tSubtotal --- ${articulos_enviados[key]['bruto']} usd")
+            print(f"\tDescuento -- {articulos_enviados[key]['descuento']}%")
+            print(f"\t{'-' * 30}")
+            print(f"\tTOTAL ------ ${articulos_enviados[key]['neto']} usd")
     else:
-        print(f"\n\t\tNo se ha envíado ningún artículo a {ciudad}.")
+        print(f"\n\tNo se ha envíado ningún artículo a {ciudad}.")
 
 
 def obtener_valor_total_por_ciudad(_pedidos: dict) -> None:
@@ -726,7 +733,7 @@ def articulo_mas_pedido(pedidos):
         for codigo in producto:
             for colores in producto[codigo]:
                 color = producto[codigo][colores]
-                if codigo == 568:
+                if codigo == "568":
                     contador_vaso[1] += color["cantidad"]
                 else:
                     contador_botella[1] += color["cantidad"]
@@ -747,9 +754,9 @@ def articulo_mas_entregado(pedidos):
                 color_producto = productos[producto]
                 for item in color_producto:
                     cantidad_descuento = color_producto[item]
-                    if producto == 568:
+                    if producto == "568":
                         vasos_entregados += cantidad_descuento["cantidad"]
-                    if producto == 1334:
+                    if producto == "1334":
                         botellas_entregadas += cantidad_descuento["cantidad"]
     return vasos_entregados, botellas_entregadas
 
@@ -757,6 +764,7 @@ def articulo_mas_entregado(pedidos):
 def imprimir_articulo_mas_vendido(pedidos):
     articulo_vendido = articulo_mas_pedido(pedidos)
     vasos_entregados, botellas_entregadas = articulo_mas_entregado(pedidos)
+    print("")
     if articulo_vendido[0] == "VASO":
         print(f"\n\tEl artículo más solicitado es el {articulo_vendido[0]} y se entregaron {vasos_entregados} de ellos.")
     else:
