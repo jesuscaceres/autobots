@@ -630,10 +630,10 @@ def armado_de_salidatxt(pedidos:dict)->None:
     zonas_geograficas = obtener_zonas_geograficas(pedidos)
     punto_partida = obtener_punto_partida()
 
-    recorrido_norte: list = calcular_recorrido_por_zona(zonas_geograficas,ZONA_NORTE,punto_partida)
-    recorrido_centro: list = calcular_recorrido_por_zona(zonas_geograficas,ZONA_CENTRO,punto_partida)
-    recorrido_sur: list = calcular_recorrido_por_zona(zonas_geograficas,ZONA_SUR,punto_partida)
-    recorrido_caba: list = calcular_recorrido_por_zona(zonas_geograficas,ZONA_CABA,punto_partida)
+    recorrido_norte: list = calcular_recorrido_por_zona(zonas_geograficas,"ZONA NORTE",punto_partida)
+    recorrido_centro: list = calcular_recorrido_por_zona(zonas_geograficas,"ZONA CENTRO",punto_partida)
+    recorrido_sur: list = calcular_recorrido_por_zona(zonas_geograficas,"ZONA SUR",punto_partida)
+    recorrido_caba: list = calcular_recorrido_por_zona(zonas_geograficas,"CABA",punto_partida)
 
 
 def ordenar_fecha(elem):
