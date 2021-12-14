@@ -718,9 +718,12 @@ def imprimir_pedidos_ordenados(pedidos:dict) -> None:
          pedidos (dict): Diccionario que contiene la estructura base de los pedidos.
     """
     cantidad, pedido_completo = mostrar_pedidos_completos(pedidos)
-    print("")
-    print(f"\tSe entregaron {cantidad} pedidos:")
-    print("")
+    if cantidad != 0:
+        print("")
+        print(f"\tSe entregaron {cantidad} pedidos:")
+        print("")
+    else:
+        print(f"\n\tAún no se ha entregado ningún pedido.")
     for pedido in pedido_completo:
         cliente: str = pedido[0]
         numero: int = pedido[1]
