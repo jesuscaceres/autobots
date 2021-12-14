@@ -1,4 +1,7 @@
+import ssl
+import certifi as certifi
 import cv2
+import geopy
 import numpy as np
 import os
 import json
@@ -24,7 +27,7 @@ PROVINCIA_PUNTO_PARTIDA: str = "Buenos Aires"
 CIUDAD_PUNTO_PARTIDA: str = "CABA"
 PAIS: str = "Argentina"
 
-#Constantes Zonas Geograficas (Claves)
+# Constantes Zonas Geograficas (Claves)
 ZONA_CABA: str = "CABA"
 ZONA_CENTRO: str = "CENTRO"
 ZONA_SUR: str = "SUR"
@@ -33,36 +36,35 @@ ZONA_NORTE: str = "NORTE"
 # Precio en dólares
 PRECIO_BOTELLA: float = 15
 PRECIO_VASO: float = 8
-
 # Peso en kilogramos
 PESO_BOTELLA: float = 0.450
 PESO_VASO: float = 0.350
 
-#Traductor colores
-colores:dict = {
-    "Black" : "Negro",
-    "Blue" : "Azul",
-    "Yellow" : "Amarillo",
-    "Green" : "Verde",
-    "Red" : "Rojo"
+# Traductor colores
+COLORES: dict = {
+    "Black": "Negro",
+    "Blue": "Azul",
+    "Yellow": "Amarillo",
+    "Green": "Verde",
+    "Red": "Rojo"
 }
 
-def cargar_yolo() -> None:
+
+def cargar_yolo() -> tuple:
     """
     Carga los archivos de YOLO
     """
     net = cv2.dnn.readNet("yolov3.weights", "yolov3.cfg")
-    clases = []
     with open("coco.names", "r") as f:
-        clases = [line.strip() for line in f.readlines()] 
+        clases = [line.strip() for line in f.readlines()]
 
     output_layers = [layer_name for layer_name in net.getUnconnectedOutLayersNames()]
-    colores = np.random.uniform(0, 255, size=(len(clases), 3))
-    return net, clases, colores, output_layers
+    colores_aleatorios = np.random.uniform(0, 255, size=(len(clases), 3))
+    return net, clases, colores_aleatorios, output_layers
 
 
-def leer_imagen(dir_imagen:str) -> str:
-	""" 
+def leer_imagen(dir_imagen: str) -> tuple:
+    """
     Parametros
     ----------
     Recibe como parámetro la dirección en donde está ubicada la imagen en nuestra PC
@@ -72,20 +74,20 @@ def leer_imagen(dir_imagen:str) -> str:
         float 
             Retorna la imagen, su altura, ancho y canal    
     """
-	img = cv2.imread(dir_imagen)
-	img = cv2.resize(img, None, fx=0.4, fy=0.4)
-	altura, ancho, canal = img.shape
-	return img, altura, ancho, canal
+    img = cv2.imread(dir_imagen)
+    img = cv2.resize(img, None, fx=0.4, fy=0.4)
+    altura, ancho, canal = img.shape
+    return img, altura, ancho, canal
 
 
-def detectar_objetos(img, net, outputLayers:list):			
-	blob = cv2.dnn.blobFromImage(img, scalefactor=0.00392, size=(320, 320), mean=(0, 0, 0), swapRB=True, crop=False)
-	net.setInput(blob)
-	outputs = net.forward(outputLayers)
-	return blob, outputs
+def detectar_objetos(img, net, output_layers: list):
+    blob = cv2.dnn.blobFromImage(img, scalefactor=0.00392, size=(320, 320), mean=(0, 0, 0), swapRB=True, crop=False)
+    net.setInput(blob)
+    outputs = net.forward(output_layers)
+    return blob, outputs
 
 
-def obtener_dimension_box(outputs, altura, ancho) -> list:
+def obtener_dimension_box(outputs, altura, ancho) -> tuple:
     """ 
     Parametros
     ----------
@@ -109,7 +111,7 @@ def obtener_dimension_box(outputs, altura, ancho) -> list:
                 centro_y = int(detect[1] * altura)
                 w = int(detect[2] * ancho)
                 h = int(detect[3] * altura)
-                x = int(centro_x - w/2)
+                x = int(centro_x - w / 2)
                 y = int(centro_y - h / 2)
 
                 boxes.append([x, y, w, h])
@@ -132,7 +134,7 @@ def obtener_color(path) -> str:
             Retorna el color 
     """
     img = cv2.imread(path)
-    color:str = ""
+    color: str = ""
 
     b = img[:, :, :1]
     g = img[:, :, 1:2]
@@ -144,20 +146,21 @@ def obtener_color(path) -> str:
 
     # estableciendo el color dominante
 
-    if (b_mean > g_mean and b_mean > r_mean):
+    if b_mean > g_mean and b_mean > r_mean:
         color = "Blue"
-    elif (g_mean > r_mean and g_mean > b_mean):
+    elif g_mean > r_mean and g_mean > b_mean:
         color = "Green"
-    elif (r_mean > b_mean and r_mean > g_mean):
+    elif r_mean > b_mean and r_mean > g_mean:
         color = "Red"
-    elif (g_mean == r_mean and (b_mean != r_mean or b_mean != g_mean)):
+    elif g_mean == r_mean and (b_mean != r_mean or b_mean != g_mean):
         color = "Yellow"
-    elif (r_mean == b_mean and r_mean == g_mean):
+    elif r_mean == b_mean and r_mean == g_mean:
         color = "Black"
 
     return color
 
-def contador_producto_color (etiqueta_nombre:str, copa:list, botella:list, colores:str) -> None:
+
+def contador_producto_color(etiqueta_nombre: str, copa: list, botella: list, colores: str) -> None:
     """ 
     Imprime en pantalla si el proceso se detiene por algún producto distinto a los del catálogo.
 
@@ -175,7 +178,8 @@ def contador_producto_color (etiqueta_nombre:str, copa:list, botella:list, color
             copa[1] = copa[1] + 1
             if colores not in copa[0]:
                 copa[0][colores] = 1
-            else: copa[0][colores] += 1
+            else:
+                copa[0][colores] += 1
     elif etiqueta_nombre == "bottle":
         if len(botella) == 1:
             botella.append(1)
@@ -185,10 +189,11 @@ def contador_producto_color (etiqueta_nombre:str, copa:list, botella:list, color
             botella[1] = botella[1] + 1
             if colores not in botella[0]:
                 botella[0][colores] = 1
-            else: 
+            else:
                 botella[0][colores] += 1
     else:
         print("\tPROCESO DETENIDO, se reanuda en 1 minuto")
+
 
 def dibujar_cuadro_nombre(path, boxes, confs, colors, class_ids, classes, img, copa, botella) -> None:
     """ 
@@ -208,18 +213,18 @@ def dibujar_cuadro_nombre(path, boxes, confs, colors, class_ids, classes, img, c
             x, y, w, h = boxes[i]
             label = str(classes[class_ids[i]])
             color = colors[i]
-            cv2.rectangle(img, (x,y), (x+w, y+h), color, 2)
+            cv2.rectangle(img, (x, y), (x + w, y + h), color, 2)
             cv2.putText(img, label, (x, y + 20), font, 1, color, 1)
             contador_producto_color(label, copa, botella, colores)
-			
 
-def detectar_imagen(dir_imagen, copa:list, botella:list) -> None: 
-	modelo, clases, colores, output_layers = cargar_yolo()
-	image, altura, ancho, channels = leer_imagen(dir_imagen)
-	blob, outputs = detectar_objetos(image, modelo, output_layers)
-	boxes, confs, class_ids = obtener_dimension_box(outputs, altura, ancho)
-	dibujar_cuadro_nombre(dir_imagen, boxes, confs, colores, class_ids, clases, image, copa, botella)
-	cv2.waitKey(0)
+
+def detectar_imagen(dir_imagen, copa: list, botella: list) -> None:
+    modelo, clases, colores, output_layers = cargar_yolo()
+    image, altura, ancho, channels = leer_imagen(dir_imagen)
+    blob, outputs = detectar_objetos(image, modelo, output_layers)
+    boxes, confs, class_ids = obtener_dimension_box(outputs, altura, ancho)
+    dibujar_cuadro_nombre(dir_imagen, boxes, confs, colores, class_ids, clases, image, copa, botella)
+    cv2.waitKey(0)
 
 
 def imprimir_opciones_logistik() -> None:
@@ -278,7 +283,8 @@ def menu() -> int:
 
     return int(opcion_user)
 
-def obtener_zonas_geograficas(_pedidos:dict) -> dict:
+
+def obtener_zonas_geograficas(_pedidos: dict) -> dict:
     """ 
     Obtiene el listado de zonas geográficas de Argentina 
     agrupadas con las ciudades que están actualmente en pedidos 
@@ -303,31 +309,33 @@ def obtener_zonas_geograficas(_pedidos:dict) -> dict:
         de la ciudad, obtenido haciendo uso de la librería Geopy. 
 
     """
-    geolocalizador = Nominatim(user_agent="autobots") 
+    geolocalizador = Nominatim(user_agent="autobots")
     ciudades: dict = {}
     zonas_geograficas: dict = {
-        ZONA_CABA:{},
-        ZONA_NORTE:{},
-        ZONA_SUR:{},
-        ZONA_CENTRO:{}
-    }  
+        ZONA_CABA: {},
+        ZONA_NORTE: {},
+        ZONA_SUR: {},
+        ZONA_CENTRO: {}
+    }
 
     for nro_pedido, datos_pedido in _pedidos.items():
         pedido_ciudad: str = datos_pedido.get("ciudad", "CABA")
+        zona: str = ''
+        ubicacion_ciudad: tuple = ()
 
-        if (pedido_ciudad not in ciudades.keys()):
-            #Solo proceso ciudades que no he procesado
+        if pedido_ciudad not in ciudades.keys():
+            # Solo proceso ciudades que no he procesado
             pedido_provincia: str = datos_pedido.get("provincia", "Buenos Aires")
-            geo_ubicacion: str = geolocalizador.geocode(f"{pedido_ciudad}, {pedido_provincia}, {PAIS}") 
+            geo_ubicacion = geolocalizador.geocode(f"{pedido_ciudad}, {pedido_provincia}, {PAIS}")
             ubicacion_ciudad: tuple = (float(geo_ubicacion.latitude), float(geo_ubicacion.longitude))
             ciudades[pedido_ciudad] = ubicacion_ciudad
-            zona: str = ZONA_CABA 
+            zona = ZONA_CABA
 
-        if (pedido_ciudad == ZONA_CABA):
-            zona =  zona
-        elif (abs(ubicacion_ciudad[0]) < LATITUD_35_GRADOS):
+        if pedido_ciudad == ZONA_CABA:
+            zona = zona
+        elif abs(ubicacion_ciudad[0]) < LATITUD_35_GRADOS:
             zona = ZONA_NORTE
-        elif (abs(ubicacion_ciudad[0]) < LATITUD_40_GRADOS):
+        elif abs(ubicacion_ciudad[0]) < LATITUD_40_GRADOS:
             zona = ZONA_CENTRO
         else:
             zona = ZONA_SUR
@@ -335,6 +343,7 @@ def obtener_zonas_geograficas(_pedidos:dict) -> dict:
         zonas_geograficas[zona][pedido_ciudad] = ubicacion_ciudad
 
     return zonas_geograficas
+
 
 def obtener_punto_partida() -> tuple:
     """ 
@@ -354,11 +363,12 @@ def obtener_punto_partida() -> tuple:
 
     """
     geolocalizador = Nominatim(user_agent="autobots")
-    geo_ubicacion_punto_partida: str = geolocalizador.geocode(
+    geo_ubicacion_punto_partida = geolocalizador.geocode(
         f"{CIUDAD_PUNTO_PARTIDA}, {PROVINCIA_PUNTO_PARTIDA}, {PAIS}")
     punto_partida: tuple = (float(geo_ubicacion_punto_partida.latitude), float(geo_ubicacion_punto_partida.longitude))
 
     return punto_partida
+
 
 def calcular_recorrido_por_zona(zonas_geograficas: dict, zona: str, punto_partida: tuple) -> list:
     """ 
@@ -385,12 +395,13 @@ def calcular_recorrido_por_zona(zonas_geograficas: dict, zona: str, punto_partid
     """
 
     ciudades: dict = zonas_geograficas.get(zona, {})
-    tamaño_recorrido: int = len(ciudades)
+    tamanio_recorrido: int = len(ciudades)
     punto_comparacion: tuple = punto_partida
     recorrido: list = []
 
-    for i in range(tamaño_recorrido):
-        ciudad_mas_cerca: str = sorted(ciudades.items(), key=lambda x: distance.distance(x[1], punto_comparacion).km)[0][0]
+    for i in range(tamanio_recorrido):
+        ciudad_mas_cerca: str = \
+            sorted(ciudades.items(), key=lambda x: distance.distance(x[1], punto_comparacion).km)[0][0]
         punto_comparacion = ciudades.get(ciudad_mas_cerca)
         recorrido.append(ciudad_mas_cerca)
         del ciudades[ciudad_mas_cerca]
@@ -438,18 +449,217 @@ def recorrido_por_zona(_pedidos: dict) -> None:
 
     print("\n\tCalculando recorrido")
     zonas_geograficas: dict = obtener_zonas_geograficas(_pedidos)
-    print("\n\tEl recorrido más óptimo para la zona ingresada es: ", end = '')
-    recorrido: list = calcular_recorrido_por_zona(zonas_geograficas, listado_zonas[int(opcion_user) - 1], obtener_punto_partida())
+    print("\n\tEl recorrido más óptimo para la zona ingresada es: ", end='')
+    recorrido: list = calcular_recorrido_por_zona(zonas_geograficas, listado_zonas[int(opcion_user) - 1],
+                                                  obtener_punto_partida())
     print(", ".join(ciudad for ciudad in recorrido))
 
-def funcion_opcion_3():
-    pass
+
+def armar_archivo(lista_de_datos:list)->None:
+    #Arma el archivo salida.txt con los datos pertinentes.
+    contador:int = 0
+    with open("salida.txt","a+") as salida:
+        for elemento in (lista_de_datos[0:3]):
+            salida.write(elemento)
+            salida.write("\n")
+        lista = ", ".join(lista_de_datos[3])
+        salida.write(lista)
+        salida.write("\n")
 
 
-def ordenar_fecha(elem):
-    return datetime.strptime(elem[2], '%d/%m/%Y')
+def sumar_peso(productos:dict,peso:float)->float:
+    #Pre: ingresa los productos y el peso del pedido hasta el momento.
+    #Devuelve la suma del peso del pedido agregado al anterior.
+
+    cantidad_botellas: int = 0
+    cantidad_vasos: int = 0
+    peso_b: float = 0
+    peso_v: float = 0
+    for codigo,colores in productos.items():
+        if (codigo == "1334"):
+            cantidad = colores
+            for color,cantidad in cantidad.items():
+                cantidad_botellas +=cantidad["cantidad"]
+    for codigo,colores in productos.items():
+        if (codigo == "568"):
+            cantidad = colores
+            for color,cantidad in cantidad.items():
+                cantidad_vasos +=cantidad["cantidad"]
+
+    peso = cantidad_botellas * PESO_BOTELLA + cantidad_vasos * PESO_VASO
+
+    return peso
+
+
+def chequeo_de_peso(peso:float,peso_anterior:float,dict_utilitarios_peso:dict):
+    #Verifica que el peso se mantenga dentro del rango dado por los utilitarios restantes.
+
+    if ("Utilitario 003" in dict_utilitarios_peso and peso <= 500):
+        peso = peso
+    elif("Utilitario 001" in dict_utilitarios_peso and peso <= 600):
+        peso = peso
+    elif("Utilitario 002" in dict_utilitarios_peso and peso <= 1000):
+        peso = peso
+    elif("Utilitario 004" in dict_utilitarios_peso and peso <= 2000):
+        peso = peso
+    else:
+        peso = peso_anterior
+    
+    return peso
+
+
+def seleccionar_utilitario(dict_utilitarios_peso:dict,peso:float)->str:
+    #Selecciona un utilitario del diccionario de acuerdo al peso.
+
+    utilitario:str = ""
+
+    for utilitarios,carga in dict_utilitarios_peso.items():
+        if (peso <= carga):
+            utilitario = utilitarios
+
+            return utilitario 
+
+
+def modifica_diccionario_utilitarios(dict_utilitarios_peso:dict,utilitario:str)->dict:
+    #Quita el utilitario seleccionado para el pedido.
+    del dict_utilitarios_peso[utilitario]
+
+    
+    return dict_utilitarios_peso
+
+
+def cambiar_a_enviado_en_pedidos(lista_de_envios_a_modificar:list,pedidos:dict)->dict:
+    #Cambia a enviados los pedidos que entraron en los utilitarios.
+    pedidos_enviados:dict = dict()
+    for ciudad in lista_de_envios_a_modificar:
+        for numero,datos in pedidos.items():
+            if (datos["ciudad"] == ciudad):
+                envio = datos
+                datos["enviado"] = True
+
+    return pedidos
+
+
+def armar_salida_texto(recorrido:list,zone:str,dict_utilitarios_peso:dict,pedidos:dict)->dict:
+
+    #Crea una lista de datos para agregar en salida.txt
+    #Pre: recibe el recorrido y la zona de dicho recorrido
+    #Pos: envia el listado de datos para crear ó agregar en salida.txt
+
+    peso_botella: float = 0
+    peso_vaso: float = 0
+    peso: float = 0
+    peso_anterior: float = 0
+    lista_de_datos:list = list()
+    lista_ciudades_enviados:list = list()
+    lista_de_envios_a_modificar: list = list()
+    lista_de_datos.append(zone)
+
+    for ciudad in recorrido:
+        for numero,datos in pedidos.items():
+            if (datos["ciudad"] == ciudad):
+                productos = datos["productos"]
+                peso_anterior += peso
+                peso += sumar_peso(productos,peso)
+                control = chequeo_de_peso(peso,peso_anterior,dict_utilitarios_peso)
+                if (control == peso):
+                    lista_ciudades_enviados.append(ciudad)
+                    lista_de_envios_a_modificar.append(ciudad)
+                else:
+                    if(len(lista_ciudades_enviados)==1):
+                        peso = chequeo_de_peso(peso,peso_anterior,dict_utilitarios_peso)
+                    else:
+                        peso = chequeo_de_peso(peso,peso_anterior,dict_utilitarios_peso)
+    
+    utilitario: str = seleccionar_utilitario(dict_utilitarios_peso,peso)
+    dict_utilitarios_peso = modifica_diccionario_utilitarios(dict_utilitarios_peso,utilitario)
+
+    if (peso == 0 or peso > 2000):
+        peso = "No enviado."
+    else:
+        peso = int(peso)
+        peso = str(peso)+"KG"
+
+    lista_de_datos.append(utilitario)
+    lista_de_datos.append(peso)
+    lista_de_datos.append(lista_ciudades_enviados)
+
+    armar_archivo(lista_de_datos)
+
+    cambiar_a_enviado_en_pedidos(lista_de_envios_a_modificar,pedidos)
+    
+    return dict_utilitarios_peso
+
+
+def procesar_pedido_por_utilitario(recorrido_norte:list,recorrido_centro:list,recorrido_sur:list,recorrido_caba:list,pedidos:dict)->None:
+    #Inicializa el armado de pedidos de acuerdo a la zona
+    #Pre: recibe todos los recorridos y el pedido.
+    #Post: arma zona por zona los pedidos 
+
+    sin_datos:list = list()
+
+    dict_utilitarios_peso:dict = {"Utilitario 003":500,"Utilitario 001":600,"Utilitario 002":1000,"Utilitario 004":2000}
+
+    if (recorrido_norte == []):
+        sin_datos = ["Zona Norte:","Sin pedidos","",[]]
+        armar_archivo(sin_datos)
+    else:
+        dict_utilitarios_peso = armar_salida_texto(recorrido_norte,"Zona Norte:",dict_utilitarios_peso,pedidos)
+    
+    if (recorrido_centro == []):
+        sin_datos = ["Zona Centro:","Sin pedidos","",[]]
+        armar_archivo(sin_datos)
+    else:
+        dict_utilitarios_peso = armar_salida_texto(recorrido_centro,"Zona Centro:",dict_utilitarios_peso,pedidos)
+    
+    if (recorrido_sur == []):
+        sin_datos = ["Zona Sur:","Sin pedidos","",[]]
+        armar_archivo(sin_datos)
+    else:
+        dict_utilitarios_peso = armar_salida_texto(recorrido_sur,"Zona Sur:",dict_utilitarios_peso,pedidos)
+    
+    if (recorrido_caba == []):
+        sin_datos = ["Zona CABA:","Sin pedidos","",[]]
+        armar_archivo(sin_datos)
+    else:
+        dict_utilitarios_peso = armar_salida_texto(recorrido_caba,"CABA",dict_utilitarios_peso,pedidos)
+
+
+def armado_de_salidatxt(pedidos:dict)->None:
+
+    zonas_geograficas = obtener_zonas_geograficas(pedidos)
+    punto_partida = obtener_punto_partida()
+
+    recorrido_norte: list = calcular_recorrido_por_zona(zonas_geograficas,"NORTE",punto_partida)
+    recorrido_centro: list = calcular_recorrido_por_zona(zonas_geograficas,"CENTRO",punto_partida)
+    recorrido_sur: list = calcular_recorrido_por_zona(zonas_geograficas,"SUR",punto_partida)
+    recorrido_caba: list = calcular_recorrido_por_zona(zonas_geograficas,"CABA",punto_partida)
+
+    procesar_pedido_por_utilitario(recorrido_norte,recorrido_centro,recorrido_sur,recorrido_caba,pedidos)
+
+    print("")
+    print("\tLos datos de pedidos que han sido enviados pueden encontrarse en el archivo salida.txt")
+
+
+def ordenar_fecha(pedidos_entregados:list):
+    """
+    Funcion que ordena de menor a mayor las fechas de los pedidos.
+    Parámetros:
+         pedidos (dict): Diccionario que contiene la estructura base de los pedidos.
+    Retorno:
+            Retorna la lista de pedidos entregados ordenada por fecha.
+    """
+    return datetime.strptime(pedidos_entregados[2], '%d/%m/%Y')
+
 
 def mostrar_pedidos_completos(pedidos):
+    """
+    Funcion que cuenta la cantidad de pedidos completados y, aquellos completados, los almacena en una lista.
+    Parámetros:
+         pedidos (dict): Diccionario que contiene la estructura base de los pedidos.
+    Retorno:
+        Retorna la cantidad de pedidos completados y una lista con los pedidos que se completaron.
+    """
     cantidad_completados: int = 0
     pedido_entregado: list = []
     for key in pedidos:
@@ -457,21 +667,28 @@ def mostrar_pedidos_completos(pedidos):
         fecha: str = pedidos[key]["fecha"]
         for items in pedidos[key]:
             if items == "enviado":
-                if pedidos[key][items] == True:
+                if pedidos[key][items]:
                     cantidad_completados += 1
                     pedido_entregado.append([nombre, key, fecha])
     pedido_entregado.sort(key=ordenar_fecha)
     return cantidad_completados, pedido_entregado
 
 
-def imprimir_pedidos_ordenados(pedidos):
+def imprimir_pedidos_ordenados(pedidos:dict) -> None:
+    """
+    Funcion que imprime en pantalla los pedidos ordenados por fecha.
+    Parámetros:
+         pedidos (dict): Diccionario que contiene la estructura base de los pedidos.
+    """
     cantidad, pedido_completo = mostrar_pedidos_completos(pedidos)
-    print(f"Se entregaron {cantidad} pedidos")
+    print("")
+    print(f"\tSe entregaron {cantidad} pedidos:")
+    print("")
     for pedido in pedido_completo:
         cliente: str = pedido[0]
         numero: int = pedido[1]
         fecha: str = pedido[2]
-        print(f"El pedido número {numero} del día {fecha} a nombre de {cliente}.")
+        print(f"\n\tEl pedido número {numero} del día {fecha} a nombre de {cliente}.")
 
 
 def imprimir_total(articulos_enviados: dict, ciudad: str) -> None:
@@ -481,19 +698,19 @@ def imprimir_total(articulos_enviados: dict, ciudad: str) -> None:
         ciudad (str): Ciudad dónde fueron enviados los artículos.
     """
     if len(articulos_enviados) > 0:
-        print(f"\n\t\t\tSe enviaron los siguientes artículos a la ciudad de '{ciudad}':")
+        print(f"\n\tSe enviaron los siguientes artículos a la ciudad de '{ciudad}':")
         for key in articulos_enviados.keys():
             precio = PRECIO_BOTELLA if key == "1334" else PRECIO_VASO
             if key == "568":
-                print(f"\n\t\t({articulos_enviados[key]['cantidad']}) vasos x ${precio} usd c/u")
+                print(f"\n\t({articulos_enviados[key]['cantidad']}) vasos x ${precio} usd c/u")
             else:
-                print(f"\n\t\t({articulos_enviados[key]['cantidad']}) botellas x ${precio} usd c/u")
-            print(f"\t\tSubtotal --- ${articulos_enviados[key]['bruto']} usd")
-            print(f"\t\tDescuento -- {articulos_enviados[key]['descuento']}%")
-            print(f"\t\t{'-' * 30}")
-            print(f"\t\tTOTAL ------ ${articulos_enviados[key]['neto']} usd")
+                print(f"\n\t({articulos_enviados[key]['cantidad']}) botellas x ${precio} usd c/u")
+            print(f"\tSubtotal --- ${articulos_enviados[key]['bruto']} usd")
+            print(f"\tDescuento -- {articulos_enviados[key]['descuento']}%")
+            print(f"\t{'-' * 30}")
+            print(f"\tTOTAL ------ ${articulos_enviados[key]['neto']} usd")
     else:
-        print(f"\n\t\tNo se ha envíado ningún artículo a {ciudad}.")
+        print(f"\n\tNo se ha envíado ningún artículo a {ciudad}.")
 
 
 def obtener_valor_total_por_ciudad(_pedidos: dict) -> None:
@@ -527,14 +744,82 @@ def obtener_valor_total_por_ciudad(_pedidos: dict) -> None:
     imprimir_total(articulos_enviados, "Rosario")
 
 
-def funcion_opcion_6():
-    pass
+def articulo_mas_pedido(pedidos:dict) -> list:
+    """
+    Funcion que calcula cual de los dos productos es el mas solicitado.
+    Parámetros:
+         pedidos (dict): Diccionario que contiene la estructura base de los pedidos.
+    Retorno:
+        Retorna la lista del artículo más solicitado.
+    """
+    contador_vaso:list = ["VASO", 0]
+    contador_botella:list = ["BOTELLA", 0]
+    for numero in pedidos:
+        producto: dict = pedidos[numero]["productos"]
+        for codigo in producto:
+            for colores in producto[codigo]:
+                color = producto[codigo][colores]
+                if codigo == "568":
+                    contador_vaso[1] += color["cantidad"]
+                else:
+                    contador_botella[1] += color["cantidad"]
+    if contador_vaso[1] > contador_botella[1]:
+        return contador_vaso
+    else:
+        return contador_botella
+
+
+def articulo_mas_entregado(pedidos:dict) -> int:
+    """
+    Funcion que calcula la cantidad entregada del artículo mas solicitado.
+    Parámetros:
+         pedidos (dict): Diccionario que contiene la estructura base de los pedidos.
+    Retorno:
+        Retorna la cantidad de producto entregado.
+    """
+    vasos_entregados:int = 0
+    botellas_entregadas:int = 0
+    for pedido in pedidos:
+        productos = pedidos[pedido]["productos"]
+        enviado = pedidos[pedido]["enviado"]
+        if enviado:
+            for producto in productos:
+                color_producto = productos[producto]
+                for item in color_producto:
+                    cantidad_descuento = color_producto[item]
+                    if producto == "568":
+                        vasos_entregados += cantidad_descuento["cantidad"]
+                    if producto == "1334":
+                        botellas_entregadas += cantidad_descuento["cantidad"]
+    return vasos_entregados, botellas_entregadas
+
+
+def imprimir_articulo_mas_vendido(pedidos:dict) -> None:
+    """
+    Funcion que imprime en pantalla el artículo más vendido y cuantos de ellos se entregaron.
+    Parámetros:
+         pedidos (dict): Diccionario que contiene la estructura base de los pedidos.
+    """
+    articulo_vendido = articulo_mas_pedido(pedidos)
+    vasos_entregados, botellas_entregadas = articulo_mas_entregado(pedidos)
+    print("")
+    if articulo_vendido[0] == "VASO":
+        if vasos_entregados != 0:
+            print(f"\n\tEl artículo más solicitado es el {articulo_vendido[0]} y se entregaron {vasos_entregados} de ellos.")
+        else:
+            print(f"\n\tAún no se ha enviado ningún pedido.")
+    else:
+        if botellas_entregadas != 0:
+            print(f"\n\tEl artículo más solicitado es la {articulo_vendido[0]} y se entregaron {botellas_entregadas} de ellas.")
+        else:
+            print(f"\n\tAún no se ha enviado ningún pedido.")
 
 def escribir_productos(diccionario: dict, archivo):
     for color, cantidad in diccionario.items():
-        archivo.write(f"{colores.get(color)} {cantidad} \n")
- 
-def escribir_productos_procesados(botellas:list, copas:list) -> None:
+        archivo.write(f"{COLORES.get(color)} {cantidad} \n")
+
+
+def escribir_productos_procesados(botellas: list, copas: list) -> None:
     """ 
     Escribe el total de productos procesados en los archivos .txt 
     correspondientes, clasificados por color 
@@ -555,13 +840,13 @@ def escribir_productos_procesados(botellas:list, copas:list) -> None:
             pero no retorna nada. 
     """
 
-    with open("botellas.txt","w") as archivo_botellas:
+    with open("botellas.txt", "w") as archivo_botellas:
         escribir_productos(botellas[0], archivo_botellas)
 
-    with open("vasos.txt","w") as archivo_copas:
+    with open("vasos.txt", "w") as archivo_copas:
         escribir_productos(copas[0], archivo_copas)
 
-       
+
 def inicializar_cinta_transportadora() -> None:
     """ 
     Función que ejecuta el resto de funciones para poder determinar el producto y color de la carpeta de lotes.
@@ -569,8 +854,8 @@ def inicializar_cinta_transportadora() -> None:
     print()
     print(f"\tIniciando cinta transportadora..")
     print(f"\tReconociendo productos..")
-    botella:list = [{}]
-    copa:list = [{}]
+    botella: list = [{}]
+    copa: list = [{}]
     input_imagen_path = os.getcwd() + "/Lote0001"
     nombre_archivos = os.listdir(input_imagen_path)
 
@@ -579,12 +864,13 @@ def inicializar_cinta_transportadora() -> None:
         detectar_imagen(imagen_path, copa, botella)
 
     cv2.destroyAllWindows()
-    #Escribo la totalizacion de productos en los archivos pedidos
+    # Escribo la totalizacion de productos en los archivos pedidos
     escribir_productos_procesados(botella, copa)
-    
+
     print("")
     print(f"\tProceso finalizado con éxito")
     print(f"\tLas cantidades procesadas por color se pueden visualizar en los archivos botellas.txt y vasos.txt")
+
 
 def cargar_pedidos() -> dict:
     """Lee un archivo con extensión .csv para cargar los pedidos en un diccionario en memoria
@@ -1061,35 +1347,37 @@ def pedidos_abm(_pedidos: dict) -> None:
             print("\n\t\t'Por favor, ingrese una opción válida.")
 
 
+def inicializar_geolocalizador():
+    ctx: ssl.SSLContext = ssl.create_default_context(cafile=certifi.where())
+    geopy.geocoders.options.default_ssl_context = ctx
+    geopy.geocoders.options.default_user_agent = 'autobots'
+
+
 def main():
     opcion_menu: int = 0
     pedidos: dict = cargar_pedidos()
+    inicializar_geolocalizador()
 
-    while (not opcion_menu == CANTIDAD_OPCIONES_MENU):
+    while not opcion_menu == CANTIDAD_OPCIONES_MENU:
         opcion_menu = menu()
 
-        if (opcion_menu == OPCION_MENU_ABM_PEDIDOS):
+        if opcion_menu == OPCION_MENU_ABM_PEDIDOS:
             pedidos_abm(pedidos)
-
-        elif (opcion_menu == OPCION_MENU_RECORRIDO_POR_ZONA):
+        elif opcion_menu == OPCION_MENU_RECORRIDO_POR_ZONA:
             recorrido_por_zona(pedidos)
-
-        elif (opcion_menu == OPCION_MENU_PROCESAR_PEDIDOS_TRANSPORTE):
-            funcion_opcion_3()
-
-        elif (opcion_menu == OPCION_LISTAR_PEDIDOS_PROCESADOS):
+        elif opcion_menu == OPCION_MENU_PROCESAR_PEDIDOS_TRANSPORTE:
+            armado_de_salidatxt(pedidos)
+        elif opcion_menu == OPCION_LISTAR_PEDIDOS_PROCESADOS:
             imprimir_pedidos_ordenados(pedidos)
-
-        elif (opcion_menu == OPCION_VALORIZAR_PEDIDOS_ROSARIO):
+        elif opcion_menu == OPCION_VALORIZAR_PEDIDOS_ROSARIO:
             obtener_valor_total_por_ciudad(pedidos)
-
-        elif (opcion_menu == OPCION_ARTICULO_MAS_PEDIDO):
-            funcion_opcion_6()
-
-        elif (opcion_menu == OPCION_INCIALIZAR_CINTA_TRANSPORTADORA):
+        elif opcion_menu == OPCION_ARTICULO_MAS_PEDIDO:
+            imprimir_articulo_mas_vendido(pedidos)
+        elif opcion_menu == OPCION_INCIALIZAR_CINTA_TRANSPORTADORA:
             inicializar_cinta_transportadora()
 
     print("\n\t --- ¡ Nos vemos en la próxima LOGISTIK ! ----")
     print("")
+
 
 main()
